@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -10,21 +11,27 @@ import {
   Link2,
   LogOut,
 } from 'lucide-react';
-import Dashboard from './components/Dashboard';
-import CommandBar from './components/CommandBar';
-import PRDGenerator from './components/PRDGenerator';
-import DecisionMemory from './components/DecisionMemory';
-import DailyDigest from './components/DailyDigest';
-import EvidenceOpportunities from './components/EvidenceOpportunities';
 import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
-import SettingsPage from './pages/SettingsPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
-import WelcomeSetupPage from './pages/WelcomeSetupPage';
-import { FeedbackWidget } from './components/FeedbackWidget';
 import { AppProvider, useApp } from './context/AppContext';
 import './index.css';
 import './App.css';
+
+// Lazy-loaded — only fetched after authentication
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const CommandBar = lazy(() => import('./components/CommandBar'));
+const PRDGenerator = lazy(() => import('./components/PRDGenerator'));
+const DecisionMemory = lazy(() => import('./components/DecisionMemory'));
+const DailyDigest = lazy(() => import('./components/DailyDigest'));
+const EvidenceOpportunities = lazy(() => import('./components/EvidenceOpportunities'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+const WelcomeSetupPage = lazy(() => import('./pages/WelcomeSetupPage'));
+const FeedbackWidget = lazy(() => import('./components/FeedbackWidget').then((m) => ({ default: m.FeedbackWidget })));
+
+function PageLoader() {
+  return <div className="loading-screen">Loading...</div>;
+}
 
 const Sidebar = () => {
   const location = useLocation();
@@ -134,18 +141,22 @@ const WorkspaceShell = () => {
           </div>
         ) : null}
         <div className="route-wrapper">
-          <Routes>
-            <Route index element={<Dashboard />} />
-            <Route path="command" element={<CommandBar />} />
-            <Route path="prds" element={<PRDGenerator />} />
-            <Route path="decisions" element={<DecisionMemory />} />
-            <Route path="digest" element={<DailyDigest />} />
-            <Route path="opportunities" element={<EvidenceOpportunities />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Routes>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route index element={<Dashboard />} />
+              <Route path="command" element={<CommandBar />} />
+              <Route path="prds" element={<PRDGenerator />} />
+              <Route path="decisions" element={<DecisionMemory />} />
+              <Route path="digest" element={<DailyDigest />} />
+              <Route path="opportunities" element={<EvidenceOpportunities />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Routes>
+          </Suspense>
         </div>
       </main>
-      <FeedbackWidget />
+      <Suspense fallback={null}>
+        <FeedbackWidget />
+      </Suspense>
     </div>
   );
 };
@@ -180,7 +191,9 @@ const AppRoutes = () => {
           ) : onboardingComplete ? (
             <Navigate to="/workspace" replace />
           ) : (
-            <WelcomeSetupPage />
+            <Suspense fallback={<PageLoader />}>
+              <WelcomeSetupPage />
+            </Suspense>
           )
         }
       />

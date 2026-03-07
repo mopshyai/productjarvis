@@ -20,7 +20,11 @@ export const AppProvider = ({ children }) => {
       const data = await api.getSession();
       setSession(data);
     } catch (err) {
-      setError(err.message || 'Failed to load session');
+      // /api/session may not exist yet (404) or network may be unavailable.
+      // Treat this as "no session" rather than a fatal error — Supabase auth
+      // is the source of truth for authentication.
+      console.warn('Session fetch failed (non-fatal):', err.message);
+      setSession(null);
     } finally {
       setLoading(false);
     }
