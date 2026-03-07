@@ -2,6 +2,16 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    { "source": "/", "has": [{ "type": "host", "value": "app.productjarvis.com" }], "destination": "https://app.productjarvis.com/workspace", "permanent": false },
+    { "source": "/", "has": [{ "type": "host", "value": "auth.productjarvis.com" }], "destination": "https://app.productjarvis.com/auth", "permanent": false },
+    { "source": "/", "has": [{ "type": "host", "value": "admin.productjarvis.com" }], "destination": "https://app.productjarvis.com/workspace/settings", "permanent": false },
+    { "source": "/", "has": [{ "type": "host", "value": "status.productjarvis.com" }], "destination": "https://app.productjarvis.com/workspace/digest", "permanent": false },
+    { "source": "/", "has": [{ "type": "host", "value": "www.productjarvis.com" }], "destination": "https://productjarvis.com", "permanent": true },
+    { "source": "/", "has": [{ "type": "host", "value": "docs.productjarvis.com" }], "destination": "https://productjarvis.com", "permanent": false },
+    { "source": "/", "has": [{ "type": "host", "value": "blog.productjarvis.com" }], "destination": "https://productjarvis.com", "permanent": false },
+    { "source": "/", "has": [{ "type": "host", "value": "cdn.productjarvis.com" }], "destination": "https://productjarvis.com", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/((?!assets/).*)", "destination": "/index.html" }
   ],
