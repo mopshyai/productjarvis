@@ -151,7 +151,7 @@ const WorkspaceShell = () => {
 };
 
 const AppRoutes = () => {
-  const { session, loading, error } = useApp();
+  const { session, loading, error, isAuthenticated } = useApp();
 
   if (loading && !session) {
     return <div className="loading-screen">Loading ProductJarvis...</div>;
@@ -161,7 +161,7 @@ const AppRoutes = () => {
     return <div className="loading-screen">{error}</div>;
   }
 
-  const authenticated = Boolean(session?.auth?.authenticated);
+  const authenticated = isAuthenticated;
   const onboardingComplete = Boolean(session?.workspace?.onboarding_complete);
 
   return (

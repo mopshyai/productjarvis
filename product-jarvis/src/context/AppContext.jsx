@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import api from '../lib/apiClient';
+import { supabase } from '../lib/supabaseClient';
 import { setSentryUser, setSentryWorkspace } from '../lib/sentry';
 import { identifyUser, setWorkspace, resetUser } from '../lib/posthog';
 
@@ -7,9 +8,12 @@ const AppContext = createContext(null);
 
 export const AppProvider = ({ children }) => {
   const [session, setSession] = useState(null);
+  // Real Supabase auth state (separate from mock session)
+  const [supaSession, setSupaSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // ── Mock API session (product data) ──────────────────────────────────────────
   const refreshSession = async () => {
     try {
       setError('');
@@ -26,6 +30,24 @@ export const AppProvider = ({ children }) => {
     refreshSession();
   }, []);
 
+  // ── Supabase real auth ────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!supabase) return;
+
+    // Get initial Supabase session
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSupaSession(s);
+    });
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSupaSession(s);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ── Analytics sync ────────────────────────────────────────────────────────────
   useEffect(() => {
     if (session?.user) {
       setSentryUser(session.user);
@@ -35,25 +57,33 @@ export const AppProvider = ({ children }) => {
     }
   }, [session]);
 
-  const completeOnboarding = async (payload) => {
-    setLoading(true);
-    try {
-      const updated = await api.completeOnboarding(payload);
-      setSession(updated);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // ── Auth methods ──────────────────────────────────────────────────────────────
   const signInWithGoogle = async () => {
-    setLoading(true);
-    try {
-      const updated = await api.signInWithGoogle();
-      setSession(updated);
-      return updated;
-    } finally {
-      setLoading(false);
+    if (!supabase) {
+      // Mock fallback
+      setLoading(true);
+      try {
+        const updated = await api.signInWithGoogle();
+        setSession(updated);
+        return updated;
+      } finally {
+        setLoading(false);
+      }
     }
+
+    const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account',
+        },
+      },
+    });
+
+    if (oauthError) throw oauthError;
+    return data;
   };
 
   const sendMagicLink = async (payload) => {
@@ -76,7 +106,44 @@ export const AppProvider = ({ children }) => {
     resetUser();
     setLoading(true);
     try {
+      if (supabase) await supabase.auth.signOut();
       const updated = await api.logout();
+      setSession(updated);
+      setSupaSession(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const checkOnboardingStatus = async (userId) => {
+    if (!supabase) {
+      return {
+        hasWorkspace: Boolean(session?.workspace),
+        onboardingComplete: Boolean(session?.workspace?.onboarding_complete),
+      };
+    }
+
+    const { data, error: dbError } = await supabase
+      .from('workspace_members')
+      .select('workspace_id, workspaces(onboarding_complete)')
+      .eq('user_id', userId)
+      .single();
+
+    if (dbError || !data) {
+      return { hasWorkspace: false, onboardingComplete: false };
+    }
+
+    return {
+      hasWorkspace: true,
+      onboardingComplete: data.workspaces?.onboarding_complete ?? false,
+    };
+  };
+
+  // ── Onboarding ────────────────────────────────────────────────────────────────
+  const completeOnboarding = async (payload) => {
+    setLoading(true);
+    try {
+      const updated = await api.completeOnboarding(payload);
       setSession(updated);
     } finally {
       setLoading(false);
@@ -85,6 +152,7 @@ export const AppProvider = ({ children }) => {
 
   const getOnboardingSchema = async () => api.getOnboardingSchema();
   const saveOnboardingAnswer = async (payload) => api.saveOnboardingAnswer(payload);
+
   const completeAdaptiveOnboarding = async (payload) => {
     setLoading(true);
     try {
@@ -95,18 +163,23 @@ export const AppProvider = ({ children }) => {
       setLoading(false);
     }
   };
+
   const recommendMethodologies = async (payload) => api.recommendMethodologies(payload);
 
+  // ── Context value ─────────────────────────────────────────────────────────────
   const value = {
     session,
+    supaSession,
     loading,
     error,
+    isAuthenticated: Boolean(supaSession) || Boolean(session?.auth?.authenticated),
     refreshSession,
     completeOnboarding,
     signInWithGoogle,
     sendMagicLink,
     authCallback,
     logout,
+    checkOnboardingStatus,
     getOnboardingSchema,
     saveOnboardingAnswer,
     completeAdaptiveOnboarding,

@@ -1,211 +1,253 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Mail, ShieldCheck, Key, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { supabase } from '../lib/supabaseClient';
 import './AuthPage.css';
-
-const ALPHA_MODE = import.meta.env.VITE_ALPHA_INVITE_ONLY === 'true';
-
-// Hardcoded alpha invite codes for mock mode (real validation via Supabase edge function in prod)
-const MOCK_INVITE_CODES = ['JARVIS-ALPHA', 'JARVIS-LAUNCH', 'JARVIS-PM2026'];
 
 const AuthPage = () => {
   const navigate = useNavigate();
-  const { signInWithGoogle, sendMagicLink, loading } = useApp();
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [searchParams] = useSearchParams();
+  const { signInWithGoogle, isAuthenticated, checkOnboardingStatus, supaSession, loading } = useApp();
 
-  // Invite / waitlist state
-  const [mode, setMode] = useState(ALPHA_MODE ? 'gate' : 'login'); // 'gate' | 'waitlist' | 'invite' | 'login'
+  // 'waitlist' | 'invite' | 'login'
+  const [mode, setMode] = useState('waitlist');
   const [inviteCode, setInviteCode] = useState('');
-  const [inviteValid, setInviteValid] = useState(null);
+  const [inviteError, setInviteError] = useState('');
   const [waitlistEmail, setWaitlistEmail] = useState('');
-  const [waitlistDone, setWaitlistDone] = useState(false);
+  const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [authError, setAuthError] = useState('');
 
-  const validateInviteCode = () => {
+  // If already authenticated, redirect
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const uid = supaSession?.user?.id;
+    if (uid) {
+      checkOnboardingStatus(uid).then((status) => {
+        navigate(status.onboardingComplete ? '/workspace' : '/welcome', { replace: true });
+      });
+    } else {
+      // Mock auth session
+      navigate('/workspace', { replace: true });
+    }
+  }, [isAuthenticated, supaSession, checkOnboardingStatus, navigate]);
+
+  // Check for invite code in URL
+  useEffect(() => {
+    const codeFromUrl = searchParams.get('code');
+    if (codeFromUrl) {
+      setInviteCode(codeFromUrl.toUpperCase());
+      setMode('invite');
+    }
+  }, [searchParams]);
+
+  const validateInviteCode = async () => {
     const code = inviteCode.trim().toUpperCase();
-    const valid = MOCK_INVITE_CODES.includes(code);
-    setInviteValid(valid);
-    if (valid) setTimeout(() => setMode('login'), 600);
+    if (!code) {
+      setInviteError('Please enter an invite code');
+      return;
+    }
+
+    setBusy(true);
+    setInviteError('');
+
+    try {
+      if (supabase) {
+        const { data, error: dbError } = await supabase
+          .from('invite_codes')
+          .select('*')
+          .eq('code', code)
+          .eq('is_active', true)
+          .single();
+
+        if (dbError || !data) {
+          setInviteError('Invalid or expired invite code');
+          return;
+        }
+        if (data.expires_at && new Date(data.expires_at) < new Date()) {
+          setInviteError('This invite code has expired');
+          return;
+        }
+        if (data.max_uses && data.uses >= data.max_uses) {
+          setInviteError('This invite code has been fully redeemed');
+          return;
+        }
+      } else {
+        // Mock validation
+        const MOCK_CODES = ['JARVIS-ALPHA', 'JARVIS-LAUNCH', 'JARVIS-PM2026'];
+        if (!MOCK_CODES.includes(code)) {
+          setInviteError('Invalid or expired invite code');
+          return;
+        }
+      }
+
+      sessionStorage.setItem('invite_code', code);
+      setMode('login');
+    } catch (err) {
+      setInviteError('Something went wrong. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setBusy(true);
+    setAuthError('');
+    try {
+      await signInWithGoogle();
+      // OAuth redirect handles the rest
+    } catch (err) {
+      setAuthError('Failed to sign in with Google. Please try again.');
+      setBusy(false);
+    }
   };
 
   const submitWaitlist = async (e) => {
     e.preventDefault();
-    // In prod: POST to /api/waitlist
-    console.info('[Waitlist]', waitlistEmail);
-    setWaitlistDone(true);
-  };
-
-  const handleGoogle = async () => {
-    setError('');
+    setBusy(true);
     try {
-      const session = await signInWithGoogle();
-      navigate(session?.workspace?.onboarding_complete ? '/workspace' : '/welcome');
+      if (supabase) {
+        const { error: dbError } = await supabase
+          .from('waitlist')
+          .insert({ email: waitlistEmail.toLowerCase(), source: 'auth_page' });
+
+        if (dbError && dbError.code !== '23505') throw dbError;
+      } else {
+        console.info('[Waitlist]', waitlistEmail);
+      }
+      setWaitlistSubmitted(true);
     } catch (err) {
-      setError(err.message || 'Google sign-in failed');
+      console.error('Waitlist error:', err);
+    } finally {
+      setBusy(false);
     }
   };
 
-  const handleMagicLink = async (event) => {
-    event.preventDefault();
-    setError('');
-    setMessage('');
-    try {
-      const result = await sendMagicLink({ email });
-      setMessage(result.message || 'Magic link sent — check your inbox.');
-      navigate('/auth/callback?provider=magic_link&token=demo');
-    } catch (err) {
-      setError(err.message || 'Magic link failed');
-    }
-  };
-
-  // ── Gate screen (Alpha mode) ──────────────────────────────────────────────
-  if (mode === 'gate') {
-    return (
-      <div className="auth-shell">
-        <div className="auth-panel glass-panel">
-          <div className="auth-alpha-badge">Private Alpha</div>
-          <h1>ProductJarvis is invite-only</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            We're in private alpha. Join the waitlist or enter your invite code to access.
-          </p>
-          <button className="auth-google" onClick={() => setMode('waitlist')}>
-            Join the Waitlist
-          </button>
-          <div className="auth-divider">have an invite code?</div>
-          <button className="auth-magic" onClick={() => setMode('invite')}>
-            <Key size={14} /> Enter Invite Code
-          </button>
-        </div>
-      </div>
-    );
+  if (loading && !isAuthenticated) {
+    return <div className="loading-screen">Loading...</div>;
   }
 
-  // ── Waitlist screen ───────────────────────────────────────────────────────
-  if (mode === 'waitlist') {
-    return (
-      <div className="auth-shell">
-        <div className="auth-panel glass-panel">
-          <button className="auth-back" onClick={() => setMode('gate')}>
-            <ArrowLeft size={15} /> Back
-          </button>
-          {waitlistDone ? (
-            <div className="auth-waitlist-done">
-              <CheckCircle2 size={36} style={{ color: 'var(--success)' }} />
-              <h2>You're on the list!</h2>
-              <p>We'll send your invite code when a spot opens up.</p>
+  return (
+    <div className="auth-page">
+      <div className="auth-page__container">
+        {/* Logo */}
+        <div className="auth-page__logo">
+          <div className="auth-page__logo-icon">J</div>
+          <span className="auth-page__logo-text">ProductJarvis</span>
+        </div>
+
+        {/* Waitlist Mode */}
+        {mode === 'waitlist' && !waitlistSubmitted && (
+          <div className="auth-page__content">
+            <h1>ProductJarvis is in Private Alpha</h1>
+            <p className="auth-page__subtitle">Join the waitlist to get early access</p>
+
+            <form onSubmit={submitWaitlist} className="auth-page__form">
+              <input
+                type="email"
+                placeholder="Enter your work email"
+                value={waitlistEmail}
+                onChange={(e) => setWaitlistEmail(e.target.value)}
+                required
+                className="auth-page__input"
+              />
+              <button
+                type="submit"
+                disabled={busy || !waitlistEmail.trim()}
+                className="auth-page__button auth-page__button--primary"
+              >
+                {busy ? 'Joining...' : 'Join Waitlist'}
+              </button>
+            </form>
+
+            <div className="auth-page__divider">
+              <span>Have an invite code?</span>
             </div>
-          ) : (
-            <>
-              <h2>Join the Waitlist</h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                Early access for PMs who move fast.
-              </p>
-              <form className="auth-form" onSubmit={submitWaitlist}>
-                <label>
-                  Work email
-                  <input
-                    type="email"
-                    placeholder="you@company.com"
-                    value={waitlistEmail}
-                    onChange={(e) => setWaitlistEmail(e.target.value)}
-                    required
-                  />
-                </label>
-                <button type="submit" className="auth-magic" disabled={!waitlistEmail.trim()}>
-                  <Mail size={14} /> Join Waitlist
-                </button>
-              </form>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  }
 
-  // ── Invite code screen ────────────────────────────────────────────────────
-  if (mode === 'invite') {
-    return (
-      <div className="auth-shell">
-        <div className="auth-panel glass-panel">
-          <button className="auth-back" onClick={() => setMode('gate')}>
-            <ArrowLeft size={15} /> Back
-          </button>
-          <h2>Enter Invite Code</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-            Format: JARVIS-XXXXXX
-          </p>
-          <div className="auth-invite-row">
-            <input
-              type="text"
-              placeholder="JARVIS-ALPHA"
-              value={inviteCode}
-              onChange={(e) => {
-                setInviteCode(e.target.value.toUpperCase());
-                setInviteValid(null);
-              }}
-              className={`auth-invite-input ${inviteValid === false ? 'invalid' : inviteValid === true ? 'valid' : ''}`}
-            />
-            <button className="auth-magic" onClick={validateInviteCode} disabled={!inviteCode.trim()}>
-              Verify
+            <button
+              onClick={() => setMode('invite')}
+              className="auth-page__button auth-page__button--secondary"
+            >
+              Enter Invite Code
             </button>
           </div>
-          {inviteValid === false && (
-            <p className="auth-message error">Invalid or expired invite code.</p>
-          )}
-          {inviteValid === true && (
-            <p className="auth-message success">
-              <CheckCircle2 size={14} /> Code accepted — redirecting...
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  }
+        )}
 
-  // ── Login screen (default / after valid invite) ───────────────────────────
-  return (
-    <div className="auth-shell">
-      <div className="auth-panel glass-panel">
-        {ALPHA_MODE && (
-          <div className="auth-invite-accepted">
-            <CheckCircle2 size={14} /> Invite accepted: {inviteCode}
+        {/* Waitlist Success */}
+        {waitlistSubmitted && (
+          <div className="auth-page__content auth-page__content--success">
+            <div className="auth-page__success-icon">🎉</div>
+            <h2>You're on the list!</h2>
+            <p className="auth-page__subtitle">We'll send you an invite code as soon as a spot opens up.</p>
           </div>
         )}
-        <h1>Sign in to ProductJarvis</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-          Continue with Google or magic link. No password required.
-        </p>
 
-        <button className="auth-google" onClick={handleGoogle} disabled={loading}>
-          Continue with Google
-        </button>
+        {/* Invite Code Mode */}
+        {mode === 'invite' && (
+          <div className="auth-page__content">
+            <h1>Enter Invite Code</h1>
+            <p className="auth-page__subtitle">Enter your invite code to continue</p>
 
-        <div className="auth-divider">or</div>
+            <div className="auth-page__form">
+              <input
+                type="text"
+                placeholder="e.g. JARVIS-ALPHA"
+                value={inviteCode}
+                onChange={(e) => {
+                  setInviteCode(e.target.value.toUpperCase());
+                  setInviteError('');
+                }}
+                className={`auth-page__input${inviteError ? ' auth-page__input--error' : ''}`}
+                onKeyDown={(e) => e.key === 'Enter' && validateInviteCode()}
+              />
+              {inviteError && <p className="auth-page__error">{inviteError}</p>}
+              <button
+                onClick={validateInviteCode}
+                disabled={busy || !inviteCode.trim()}
+                className="auth-page__button auth-page__button--primary"
+              >
+                {busy ? 'Verifying...' : 'Verify Code'}
+              </button>
+            </div>
 
-        <form className="auth-form" onSubmit={handleMagicLink}>
-          <label>
-            Work email
-            <input
-              type="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </label>
-          <button type="submit" className="auth-magic" disabled={loading || !email.trim()}>
-            <Mail size={14} /> Send magic link
-          </button>
-        </form>
+            <button onClick={() => setMode('waitlist')} className="auth-page__link">
+              ← Back to waitlist
+            </button>
+          </div>
+        )}
 
-        {message ? <p className="auth-message success">{message}</p> : null}
-        {error ? <p className="auth-message error">{error}</p> : null}
+        {/* Login Mode */}
+        {mode === 'login' && (
+          <div className="auth-page__content">
+            <div className="auth-page__invite-badge">✓ Invite code accepted</div>
 
-        <div className="auth-trust">
-          <ShieldCheck size={14} />
-          <span>No credit card required · Your data stays in your workspace</span>
+            <h1>Welcome to ProductJarvis</h1>
+            <p className="auth-page__subtitle">Sign in with Google to get started</p>
+
+            {authError && <div className="auth-page__error-banner">{authError}</div>}
+
+            <button
+              onClick={handleGoogleSignIn}
+              disabled={busy}
+              className="auth-page__button auth-page__button--google"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+              {busy ? 'Signing in...' : 'Continue with Google'}
+            </button>
+
+            <p className="auth-page__trust">🔒 No credit card required</p>
+          </div>
+        )}
+
+        <div className="auth-page__footer">
+          <a href="/privacy">Privacy</a>
+          <span>·</span>
+          <a href="/terms">Terms</a>
         </div>
       </div>
     </div>
