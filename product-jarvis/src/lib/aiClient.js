@@ -4,10 +4,8 @@
 
 const API_KEY = import.meta.env.VITE_QUATARLY_API_KEY || 'qua_trail_bqmryfxka931zkc9ckpwt991xub8ot22';
 
-const IS_DEV = import.meta.env.DEV;
-const PROXY = IS_DEV ? 'https://corsproxy.io/?' : '';
-const ANTHROPIC_BASE = `${PROXY}https://api.quatarly.cloud`;
-const OPENAI_BASE = `${PROXY}https://api.quatarly.cloud/v1`;
+const ANTHROPIC_BASE = 'https://api.quatarly.cloud';
+const OPENAI_BASE = 'https://api.quatarly.cloud/v1';
 
 // Default models
 const CLAUDE_MODEL = import.meta.env.VITE_CLAUDE_MODEL || 'claude-sonnet-4-6-20250929';
