@@ -164,16 +164,7 @@ const AppRoutes = () => {
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={
-          authenticated ? (
-            <Navigate to={onboardingComplete ? '/workspace' : '/welcome'} replace />
-          ) : (
-            <LandingPage />
-          )
-        }
-      />
+      <Route path="/" element={<LandingPage />} />
       <Route
         path="/auth"
         element={authenticated ? <Navigate to={onboardingComplete ? '/workspace' : '/welcome'} replace /> : <AuthPage />}
