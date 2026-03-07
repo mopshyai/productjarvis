@@ -53,15 +53,28 @@ const DailyDigest = () => {
 
           <div className="digest-section alert-section">
             <h3 className="section-title text-warning">
-              <AlertTriangle size={16} /> High Priority Risks
+              <AlertTriangle size={16} /> Risks
             </h3>
-            <div className="digest-card">
-              <h4>{digest?.risks?.[0]?.summary || 'No risks detected.'}</h4>
-              <p>{digest?.risks?.[0]?.action || 'No action required.'}</p>
-              <button className="inline-action">
-                Open Command Bar <ArrowRight size={14} />
-              </button>
-            </div>
+            {(digest?.risks || []).length === 0 ? (
+              <div className="digest-card">
+                <p>No risks detected.</p>
+              </div>
+            ) : (
+              (digest.risks).map((risk, i) => (
+                <div key={i} className="digest-card" style={{ marginBottom: '8px', borderLeft: `3px solid ${risk.severity === 'high' ? '#f87171' : risk.severity === 'medium' ? 'var(--warning)' : 'var(--success)'}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 600, textTransform: 'uppercase', padding: '1px 6px', borderRadius: '99px', background: risk.severity === 'high' ? 'rgba(239,68,68,0.15)' : risk.severity === 'medium' ? 'rgba(245,158,11,0.15)' : 'rgba(34,197,94,0.12)', color: risk.severity === 'high' ? '#f87171' : risk.severity === 'medium' ? 'var(--warning)' : 'var(--success)' }}>{risk.severity}</span>
+                  </div>
+                  <h4>{risk.summary}</h4>
+                  {risk.action && <p style={{ marginTop: '4px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{risk.action}</p>}
+                  {i === 0 && (
+                    <button className="inline-action" style={{ marginTop: '8px' }}>
+                      Open Command Bar <ArrowRight size={14} />
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
           </div>
 
           <div className="digest-section">

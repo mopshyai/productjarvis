@@ -1,38 +1,84 @@
 import React, { useEffect, useState } from 'react';
-import { Target, Clock, Zap, AlertTriangle, ArrowUpRight } from 'lucide-react';
+import { Target, Clock, Zap, AlertTriangle, ArrowUpRight, BookOpen, Command, BrainCircuit, CheckCircle2, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const { session, api } = useApp();
+  const navigate = useNavigate();
   const [digest, setDigest] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
     api.getTodayDigest().then((data) => {
-      if (active) setDigest(data);
+      if (active) {
+        setDigest(data);
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (active) setLoading(false);
     });
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [api]);
 
   const usage = session?.usage;
-  const remaining = Math.max((usage?.prd_limit_monthly || 3) - (usage?.prd_generated_this_month || 0), 0);
+  const prdUsed = usage?.prd_generated_this_month || 0;
+  const prdLimit = usage?.prd_limit_monthly || 3;
+  const remaining = Math.max(prdLimit - prdUsed, 0);
+  const quotaPct = Math.round((prdUsed / prdLimit) * 100);
+
+  const healthScore = Math.round((digest?.confidence || 0.4) * 100);
+  const scoreColor = healthScore >= 70 ? 'var(--success)' : healthScore >= 40 ? 'var(--warning)' : '#f87171';
+
+  const firstName = session?.user?.name?.split(' ')[0] || 'there';
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const quickActions = [
+    { label: 'Generate PRD', icon: BookOpen, path: '/workspace/prds', color: 'var(--accent-primary)' },
+    { label: 'Run Command', icon: Command, path: '/workspace/command', color: '#8b5cf6' },
+    { label: 'Search Decisions', icon: BrainCircuit, path: '/workspace/decisions', color: '#06b6d4' },
+    { label: 'Daily Digest', icon: Clock, path: '/workspace/digest', color: 'var(--warning)' },
+  ];
+
+  const risks = digest?.risks || [];
+  const actions = digest?.actions || [];
+  const completions = digest?.completions || [];
+  const okrs = session?.product_context?.okrs || [];
+  const signals = session?.product_context?.user_signals || [];
 
   return (
     <div className="dashboard-container page-content animate-fade-in">
-      <div className="dashboard-header-row">
+      {/* Greeting */}
+      <div className="dashboard-greeting">
         <div>
-          <h1>Overview</h1>
-          <p>Execution health and PM automation performance across your workspace.</p>
+          <h1>Good morning, {firstName}</h1>
+          <p>{today}</p>
         </div>
-        <div className="health-score glass-panel">
-          <div className="score-value">{Math.round((digest?.confidence || 0.4) * 100)}</div>
-          <div className="score-label">Product Health Score</div>
+        <div className="health-score glass-panel" style={{ borderColor: `${scoreColor}33` }}>
+          <div className="score-value" style={{ color: scoreColor }}>{loading ? '—' : healthScore}</div>
+          <div className="score-label">Health Score</div>
         </div>
       </div>
 
+      {/* Quick actions */}
+      <div className="quick-action-grid">
+        {quickActions.map((qa) => (
+          <button
+            key={qa.path}
+            className="quick-action-card glass-panel"
+            onClick={() => navigate(qa.path)}
+            style={{ '--qa-color': qa.color }}
+          >
+            <qa.icon size={20} style={{ color: qa.color }} />
+            <span>{qa.label}</span>
+            <ChevronRight size={14} className="qa-arrow" />
+          </button>
+        ))}
+      </div>
+
+      {/* Metrics */}
       <div className="metrics-grid">
         <div className="metric-card glass-panel">
           <div className="metric-header">
@@ -45,19 +91,21 @@ const Dashboard = () => {
               <ArrowUpRight size={14} /> Target locked
             </span>
           </div>
-          <p className="metric-subtext">Current session objective</p>
+          <p className="metric-subtext">Automated generation per request</p>
         </div>
 
         <div className="metric-card glass-panel">
           <div className="metric-header">
             <Zap size={18} className="text-yellow" />
-            <span>PRD Quota Remaining</span>
+            <span>PRD Quota</span>
           </div>
           <div className="metric-content">
             <span className="value">{remaining}</span>
-            <span className="trend neutral">of {usage?.prd_limit_monthly || 3} this month</span>
+            <span className="trend neutral">of {prdLimit} remaining</span>
           </div>
-          <p className="metric-subtext">Free plan monthly allowance</p>
+          <div className="quota-bar">
+            <div className="quota-fill" style={{ width: `${quotaPct}%`, background: quotaPct > 80 ? 'var(--warning)' : 'var(--accent-primary)' }} />
+          </div>
         </div>
 
         <div className="metric-card glass-panel">
@@ -66,46 +114,124 @@ const Dashboard = () => {
             <span>Active OKRs</span>
           </div>
           <div className="metric-content">
-            <span className="value">{session?.product_context?.okrs?.length || 0}</span>
+            <span className="value">{okrs.length}</span>
             <span className="trend neutral">Tracking now</span>
           </div>
           <p className="metric-subtext">Context seeded in onboarding</p>
         </div>
       </div>
 
+      {/* Content grid */}
       <div className="dashboard-content-grid">
-        <div className="recent-prds glass-panel">
-          <div className="panel-header">
-            <h3>Recent Signals</h3>
-          </div>
-          <div className="prd-list">
-            {(session?.product_context?.user_signals || []).map((signal, i) => (
-              <div key={i} className="prd-list-item">
-                <div className="status-dot published" />
-                <div className="prd-info">
-                  <h4>{signal}</h4>
-                  <span>From onboarding context</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
+        {/* Risks panel */}
         <div className="daily-risks glass-panel border-warning">
           <div className="panel-header">
             <h3 className="flex items-center gap-2 text-warning">
               <AlertTriangle size={18} /> Daily Risks
             </h3>
+            <button className="view-all" onClick={() => navigate('/workspace/digest')}>View digest</button>
           </div>
           <div className="risk-content">
-            <p className="risk-summary">
-              {digest?.risks?.[0]?.summary || 'No risks detected.'}
-            </p>
-            <div className="risk-actions">
-              <button className="btn-primary">{digest?.risks?.[0]?.action || 'No action required'}</button>
+            {loading ? (
+              <div className="loading-pulse" />
+            ) : risks.length === 0 ? (
+              <div className="empty-state">No risks detected today</div>
+            ) : (
+              risks.map((risk, i) => (
+                <div key={i} className="risk-item">
+                  <span className={`risk-badge risk-${risk.severity}`}>{risk.severity}</span>
+                  <div className="risk-text">
+                    <p>{risk.summary}</p>
+                    {risk.action && <span className="risk-action">{risk.action}</span>}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Right column */}
+        <div className="dashboard-right-col">
+          {/* Pending actions */}
+          <div className="glass-panel side-panel">
+            <div className="panel-header">
+              <h3>Pending Actions</h3>
+            </div>
+            <div className="side-panel-body">
+              {loading ? (
+                <div className="loading-pulse" />
+              ) : actions.length === 0 ? (
+                <div className="empty-state">No pending actions</div>
+              ) : (
+                actions.map((action, i) => (
+                  <div key={i} className="action-row">
+                    <AlertTriangle size={13} style={{ color: 'var(--warning)', flexShrink: 0 }} />
+                    <span>{action}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Completions */}
+          <div className="glass-panel side-panel">
+            <div className="panel-header">
+              <h3 className="text-success">Completed</h3>
+            </div>
+            <div className="side-panel-body">
+              {loading ? (
+                <div className="loading-pulse" />
+              ) : completions.length === 0 ? (
+                <div className="empty-state">No completions yet</div>
+              ) : (
+                completions.map((item, i) => (
+                  <div key={i} className="action-row">
+                    <CheckCircle2 size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
+                    <span>{item}</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
+      </div>
+
+      {/* OKRs + Signals */}
+      <div className="dashboard-bottom-grid">
+        {okrs.length > 0 && (
+          <div className="glass-panel">
+            <div className="panel-header">
+              <h3>Active OKRs</h3>
+            </div>
+            <div className="side-panel-body">
+              {okrs.map((okr, i) => (
+                <div key={i} className="okr-row">
+                  <Target size={13} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+                  <span>{okr}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {signals.length > 0 && (
+          <div className="glass-panel">
+            <div className="panel-header">
+              <h3>Recent Signals</h3>
+            </div>
+            <div className="prd-list">
+              {signals.map((signal, i) => (
+                <div key={i} className="prd-list-item">
+                  <div className="status-dot published" />
+                  <div className="prd-info">
+                    <h4>{signal}</h4>
+                    <span>From onboarding context</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

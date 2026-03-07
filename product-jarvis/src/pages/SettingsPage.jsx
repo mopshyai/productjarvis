@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Settings, Key, Globe, Bell, Shield, ChevronRight } from 'lucide-react';
+import { Settings, Link2, CheckCircle2, AlertCircle } from 'lucide-react';
+
+const inputStyle = {
+  background: 'rgba(255,255,255,0.07)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: '6px',
+  padding: '0.4rem 0.75rem',
+  color: 'inherit',
+  width: '200px',
+};
+
+const selectStyle = { ...inputStyle, width: 'auto', cursor: 'pointer' };
 
 const Section = ({ title, children }) => (
   <div className="settings-section glass-panel" style={{ marginBottom: '1.5rem', padding: '1.5rem' }}>
@@ -19,15 +30,39 @@ const SettingsRow = ({ label, description, children }) => (
   </div>
 );
 
+const INTEGRATIONS_META = {
+  jira: { label: 'Jira', desc: 'Sync sprint tickets and issue tracking' },
+  linear: { label: 'Linear', desc: 'Push generated tickets directly to Linear' },
+  notion: { label: 'Notion', desc: 'Two-way sync PRDs and docs' },
+};
+
 const SettingsPage = () => {
-  const { session, api } = useApp();
+  const { session, api, refreshSession } = useApp();
   const workspace = session?.workspace || {};
+  const integrations = session?.integrations || {};
   const [saved, setSaved] = useState(false);
   const [apiKey, setApiKey] = useState('');
+  const [connecting, setConnecting] = useState(null);
+  const [connectMsg, setConnectMsg] = useState('');
 
   const handleSave = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleConnect = async (provider) => {
+    setConnecting(provider);
+    setConnectMsg('');
+    try {
+      await api.connectIntegration(provider, workspace.id || 'ws_1');
+      await refreshSession();
+      setConnectMsg(`${INTEGRATIONS_META[provider]?.label || provider} connected!`);
+    } catch (err) {
+      setConnectMsg(err.message || 'Connection failed');
+    } finally {
+      setConnecting(null);
+      setTimeout(() => setConnectMsg(''), 3000);
+    }
   };
 
   return (
@@ -39,11 +74,7 @@ const SettingsPage = () => {
 
       <Section title="Workspace">
         <SettingsRow label="Workspace Name" description="Shown in your sidebar and exports">
-          <input
-            className="settings-input"
-            defaultValue={workspace.name || 'My Workspace'}
-            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '6px', padding: '0.4rem 0.75rem', color: 'inherit', width: '200px' }}
-          />
+          <input className="settings-input" defaultValue={workspace.name || 'My Workspace'} style={inputStyle} />
         </SettingsRow>
         <SettingsRow label="Workspace ID" description="Your unique workspace identifier">
           <code style={{ fontSize: '0.8rem', opacity: 0.6 }}>{workspace.id || 'ws_1'}</code>
@@ -55,9 +86,38 @@ const SettingsPage = () => {
         </SettingsRow>
       </Section>
 
+      <Section title="Integrations">
+        {connectMsg && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px', fontSize: '0.85rem', color: connectMsg.includes('!') ? 'var(--success)' : '#f87171' }}>
+            {connectMsg.includes('!') ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+            {connectMsg}
+          </div>
+        )}
+        {Object.entries(INTEGRATIONS_META).map(([key, meta]) => {
+          const cfg = integrations[key] || {};
+          return (
+            <SettingsRow key={key} label={meta.label} description={meta.desc}>
+              {cfg.connected ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--success)', fontSize: '0.85rem' }}>
+                  <CheckCircle2 size={14} /> Connected
+                </div>
+              ) : (
+                <button
+                  onClick={() => handleConnect(key)}
+                  disabled={connecting === key}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '6px', padding: '0.4rem 0.9rem', cursor: 'pointer', color: 'inherit', fontSize: '0.85rem', opacity: connecting === key ? 0.6 : 1 }}
+                >
+                  <Link2 size={13} /> {connecting === key ? 'Connecting...' : 'Connect'}
+                </button>
+              )}
+            </SettingsRow>
+          );
+        })}
+      </Section>
+
       <Section title="AI & API">
         <SettingsRow label="Claude Model" description="Model used for all AI generation">
-          <select style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '6px', padding: '0.4rem 0.75rem', color: 'inherit' }}>
+          <select style={selectStyle}>
             <option value="claude-sonnet-4-6">claude-sonnet-4-6 (default)</option>
             <option value="claude-opus-4-6">claude-opus-4-6 (most capable)</option>
             <option value="claude-haiku-4-5">claude-haiku-4-5 (fastest)</option>
@@ -69,7 +129,7 @@ const SettingsPage = () => {
             placeholder="sk-ant-..."
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '6px', padding: '0.4rem 0.75rem', color: 'inherit', width: '200px' }}
+            style={inputStyle}
           />
         </SettingsRow>
         <SettingsRow label="Live API Mode" description="Toggle between mock and live Supabase backend">
@@ -96,7 +156,7 @@ const SettingsPage = () => {
 
       <Section title="Privacy & Data">
         <SettingsRow label="Data Retention" description="How long session context is stored">
-          <select style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '6px', padding: '0.4rem 0.75rem', color: 'inherit' }}>
+          <select style={selectStyle}>
             <option>90 days</option>
             <option>30 days</option>
             <option>Session only</option>
