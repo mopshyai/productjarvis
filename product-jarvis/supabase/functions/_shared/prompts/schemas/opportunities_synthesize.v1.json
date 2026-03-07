@@ -1,0 +1,3 @@
+{
+  "required": ["opportunities", "synthesis_summary", "evidence_gaps", "total_evidence_chunks"]
+}

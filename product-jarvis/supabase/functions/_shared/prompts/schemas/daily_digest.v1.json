@@ -1,0 +1,3 @@
+{
+  "required": ["summary", "risks", "priorities", "health_score", "assumption_alerts"]
+}

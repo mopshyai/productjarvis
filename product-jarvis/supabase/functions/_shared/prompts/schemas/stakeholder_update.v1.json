@@ -1,0 +1,12 @@
+{
+  "required": [
+    "audience",
+    "subject_line",
+    "body",
+    "word_count",
+    "key_metrics_included",
+    "asks_or_decisions_needed",
+    "tone_check",
+    "alternative_subject_lines"
+  ]
+}

@@ -1,0 +1,186 @@
+.command-bar-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding-top: 10vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.command-header {
+    margin-bottom: 40px;
+}
+
+.command-header h1 {
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, #ffffff 0%, var(--text-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 12px;
+}
+
+.command-header p {
+    font-size: 1.1rem;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.command-input-wrapper {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 100px;
+    gap: 16px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    margin-bottom: 60px;
+}
+
+.command-input-wrapper.focused {
+    background: rgba(20, 21, 23, 0.8);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 30px var(--accent-glow), 0 4px 20px rgba(0, 0, 0, 0.3);
+    transform: scale(1.02);
+}
+
+.command-icon {
+    color: var(--accent-primary);
+    flex-shrink: 0;
+}
+
+.command-icon.spinning {
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.command-input-wrapper input {
+    flex: 1;
+    background: transparent;
+    padding: 16px 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.command-input-wrapper input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.submit-button {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 100px;
+    font-weight: 600;
+    gap: 8px;
+}
+
+.submit-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.submit-button:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+}
+
+/* Suggestions */
+.suggestions-container {
+    width: 100%;
+    text-align: left;
+}
+
+.suggestions-container h3 {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+}
+
+.suggestion-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.suggestion-card {
+    padding: 20px;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.suggestion-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--accent-glow) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity var(--transition-normal);
+    z-index: 0;
+}
+
+.suggestion-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.suggestion-card:hover::before {
+    opacity: 0.1;
+}
+
+.suggestion-card h4 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    position: relative;
+    z-index: 1;
+}
+
+.suggestion-card p {
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.suggestion-card .arrow {
+    align-self: flex-end;
+    color: var(--accent-primary);
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all var(--transition-normal);
+    position: relative;
+    z-index: 1;
+}
+
+.suggestion-card:hover .arrow {
+    opacity: 1;
+    transform: translateX(0);
+}
+.command-error {
+  margin-top: 12px;
+  color: var(--error);
+}

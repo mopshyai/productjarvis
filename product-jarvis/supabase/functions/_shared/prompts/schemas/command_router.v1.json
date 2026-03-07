@@ -1,0 +1,16 @@
+{
+  "required": [
+    "intent_classified",
+    "confidence",
+    "action_taken",
+    "output_type",
+    "content",
+    "citations",
+    "confidence_note",
+    "next_suggested_action",
+    "warnings",
+    "clarification_options",
+    "methodology_applied",
+    "methodology_outputs"
+  ]
+}

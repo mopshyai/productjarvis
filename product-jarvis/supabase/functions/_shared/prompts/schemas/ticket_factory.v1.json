@@ -1,0 +1,13 @@
+{
+  "required": [
+    "sprint_assessment",
+    "prd_gaps_found",
+    "tickets",
+    "high_risk_tickets",
+    "planning_framework",
+    "capacity_model_assumptions",
+    "risk_register",
+    "methodology_applied",
+    "methodology_outputs"
+  ]
+}

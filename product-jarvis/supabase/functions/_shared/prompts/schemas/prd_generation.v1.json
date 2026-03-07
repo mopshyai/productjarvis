@@ -1,0 +1,21 @@
+{
+  "required": [
+    "problem_statement",
+    "success_metrics",
+    "user_stories",
+    "acceptance_criteria",
+    "edge_cases",
+    "assumptions",
+    "open_questions",
+    "dependencies",
+    "out_of_scope",
+    "conflicts_detected",
+    "missing_context",
+    "prioritization_framework",
+    "delivery_framework",
+    "metrics_framework",
+    "discovery_framework",
+    "methodology_applied",
+    "methodology_outputs"
+  ]
+}

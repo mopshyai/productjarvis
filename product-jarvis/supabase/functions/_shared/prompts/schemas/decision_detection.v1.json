@@ -1,0 +1,3 @@
+{
+  "required": ["analysis_metadata", "decisions", "decision_candidates", "action_items_detected"]
+}

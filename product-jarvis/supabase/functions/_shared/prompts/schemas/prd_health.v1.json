@@ -1,0 +1,17 @@
+{
+  "required": [
+    "health_score",
+    "grade",
+    "ready_for_engineering",
+    "blocking_issues",
+    "breakdown",
+    "top_3_fixes",
+    "conflicts_with_product",
+    "okr_alignment",
+    "methodology_completeness",
+    "methodology_data_sufficiency",
+    "methodology_contradictions",
+    "methodology_applied",
+    "methodology_outputs"
+  ]
+}
