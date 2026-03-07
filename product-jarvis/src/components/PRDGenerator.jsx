@@ -3,6 +3,7 @@ import { FileText, Ticket, Edit3, Check, Users, ShieldAlert, GitPullRequest } fr
 import { useLocation } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import SourceCitation from './shared/SourceCitation';
+import PRDStreamingView from './PRDStreamingView';
 import './PRDGenerator.css';
 
 const defaultTracker = 'jira';
@@ -20,6 +21,7 @@ const PRDGenerator = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const [streaming, setStreaming] = useState(false);
   const [ticketPreview, setTicketPreview] = useState(null);
   const [tracker, setTracker] = useState(defaultTracker);
   const [healthReport, setHealthReport] = useState(null);
@@ -42,6 +44,7 @@ const PRDGenerator = () => {
 
   const handleGeneratePRD = async () => {
     if (!featureRequest.trim()) return;
+    setStreaming(true);
     setLoading(true);
     setError('');
 
@@ -57,6 +60,7 @@ const PRDGenerator = () => {
     } catch (err) {
       setError(err.message || 'Failed to generate PRD');
     } finally {
+      setStreaming(false);
       setLoading(false);
     }
   };
@@ -257,7 +261,11 @@ const PRDGenerator = () => {
       {error ? <p className="command-error">{error}</p> : null}
 
       <div className="prd-body glass-panel">
-        {activeTab === 'prd' && (
+        {streaming && (
+          <PRDStreamingView featureRequest={featureRequest} simulateDuration={3500} />
+        )}
+
+        {!streaming && activeTab === 'prd' && (
           <div className={`doc-content ${isEditing ? 'editing' : ''}`}>
             {!currentPrd ? (
               <div className="state-empty">
@@ -338,7 +346,7 @@ const PRDGenerator = () => {
           </div>
         )}
 
-        {activeTab === 'tickets' && (
+        {!streaming && activeTab === 'tickets' && (
           <div className="doc-content">
             {!ticketPreview ? (
               <div className="state-empty">
@@ -367,7 +375,7 @@ const PRDGenerator = () => {
           </div>
         )}
 
-        {activeTab === 'context' && (
+        {!streaming && activeTab === 'context' && (
           <div className="doc-content">
             <p>
               Product Context: {session?.product_context?.product_name} · {session?.product_context?.sprint_status}

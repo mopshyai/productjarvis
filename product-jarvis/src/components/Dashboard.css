@@ -104,6 +104,31 @@
     transition: width 0.4s ease;
 }
 
+.quota-cta {
+    margin-top: 10px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.quota-cta a {
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.quota-cta a:hover {
+    text-decoration: underline;
+}
+
+.quota-cta-urgent {
+    color: var(--warning);
+}
+
+.quota-cta-urgent a {
+    color: var(--warning);
+}
+
 /* Right column */
 .dashboard-right-col {
     display: flex;

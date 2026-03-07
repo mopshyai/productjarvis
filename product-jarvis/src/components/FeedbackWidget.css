@@ -1,0 +1,174 @@
+.feedback-trigger {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #8b5cf6 100%);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  z-index: 1000;
+}
+
+.feedback-trigger:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
+.feedback-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+  padding: 1rem;
+}
+
+.feedback-modal {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+}
+
+.feedback-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  color: var(--text-tertiary);
+  padding: 4px;
+}
+
+.feedback-close:hover {
+  color: var(--text-primary);
+}
+
+.feedback-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.feedback-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.25rem;
+}
+
+.feedback-types {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.feedback-types button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0.5rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.feedback-types button:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.feedback-type-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.feedback-type-badge button {
+  margin-left: auto;
+  color: var(--accent-primary);
+  font-size: 0.75rem;
+}
+
+.feedback-input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  resize: none;
+  margin-bottom: 0.75rem;
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast);
+}
+
+.feedback-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.feedback-submit {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.65rem;
+  background: var(--accent-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.feedback-submit:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.feedback-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.feedback-success {
+  text-align: center;
+  padding: 1.5rem 1rem;
+}
+
+.feedback-success svg {
+  color: var(--success);
+  margin-bottom: 0.75rem;
+}
+
+.feedback-success h3 {
+  margin-bottom: 0.4rem;
+}
+
+.feedback-success p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}

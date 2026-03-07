@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Zap, Settings } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import './WelcomeSetupPage.css';
 
@@ -64,6 +65,7 @@ const WelcomeSetupPage = () => {
     refreshSession,
   } = useApp();
 
+  const [setupMode, setSetupMode] = useState(null); // null | 'quick' | 'full'
   const [schema, setSchema] = useState(null);
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState(defaultAnswers);
@@ -136,6 +138,44 @@ const WelcomeSetupPage = () => {
     await refreshSession();
   };
 
+  const handleQuickStart = async () => {
+    setError('');
+    try {
+      await completeAdaptiveOnboarding({
+        workspace_name: defaultAnswers.product_basics.workspace_name,
+        product_name: defaultAnswers.product_basics.product_name,
+        product_description: defaultAnswers.product_basics.product_description,
+        product_stage: defaultAnswers.product_basics.product_stage,
+        target_segment: defaultAnswers.product_basics.target_segment,
+        role: defaultAnswers.role_context.role,
+        team_size: defaultAnswers.role_context.team_size,
+        persona: defaultAnswers.role_context.persona,
+        execution_cadence: defaultAnswers.goals_execution.execution_cadence,
+        okrs: defaultAnswers.goals_execution.okrs_text.split('\n').map((s) => s.trim()).filter(Boolean),
+        features_summary: ['Command Bar', 'PRD Generator', 'Decision Memory', 'Daily Digest'],
+        decisions: ['Methodology-aware planning enabled'],
+        sprint_status: 'Sprint cadence: 2 weeks',
+        user_signals: [defaultAnswers.success_baselines.biggest_bottleneck],
+        metrics: [
+          `PRD baseline: ${defaultAnswers.success_baselines.prd_time_baseline}`,
+          `Planning baseline: ${defaultAnswers.success_baselines.planning_time_baseline}`,
+        ],
+        prd_time_baseline: defaultAnswers.success_baselines.prd_time_baseline,
+        planning_time_baseline: defaultAnswers.success_baselines.planning_time_baseline,
+        biggest_bottleneck: defaultAnswers.success_baselines.biggest_bottleneck,
+        methodology_preferences: {
+          primary: defaultAnswers.method_defaults.primary_method,
+          supporting: defaultAnswers.method_defaults.supporting_methods,
+          source: 'auto',
+        },
+        answers: defaultAnswers,
+      });
+      navigate('/workspace', { replace: true });
+    } catch (err) {
+      setError(err.message || 'Quick start failed');
+    }
+  };
+
   const handleNext = async () => {
     setError('');
     try {
@@ -196,13 +236,41 @@ const WelcomeSetupPage = () => {
   return (
     <div className="welcome-shell">
       <div className="welcome-panel glass-panel">
-        <div className="welcome-head">
-          <div>
-            <h1>Set up your workspace</h1>
-            <p>About 10 minutes. We’ll personalize ProductJarvis to your team and workflow.</p>
+
+        {/* Mode selection — shown first */}
+        {!setupMode ? (
+          <div className="setup-mode-select">
+            <h1>Welcome to ProductJarvis</h1>
+            <p className="setup-mode-subtitle">How do you want to get started?</p>
+            <div className="setup-mode-grid">
+              <button className="setup-mode-card glass-panel" onClick={handleQuickStart} disabled={loading}>
+                <Zap size={28} style={{ color: 'var(--warning)' }} />
+                <div>
+                  <strong>Quick Start</strong>
+                  <p>Jump in now. We'll apply smart defaults and you can customize later.</p>
+                  <span className="setup-mode-time">~2 minutes</span>
+                </div>
+              </button>
+              <button className="setup-mode-card glass-panel" onClick={() => setSetupMode('full')}>
+                <Settings size={28} style={{ color: 'var(--accent-primary)' }} />
+                <div>
+                  <strong>Full Setup</strong>
+                  <p>Personalize your workspace: role, OKRs, methodology, integrations.</p>
+                  <span className="setup-mode-time">~10 minutes</span>
+                </div>
+              </button>
+            </div>
+            {error ? <p className="error-text">{error}</p> : null}
           </div>
-          <div className="welcome-progress">Step {Math.min(stepIndex + 1, steps.length)} / {steps.length || 6}</div>
-        </div>
+        ) : (
+          <>
+          <div className="welcome-head">
+            <div>
+              <h1>Set up your workspace</h1>
+              <p>About 10 minutes. We’ll personalize ProductJarvis to your team and workflow.</p>
+            </div>
+            <div className="welcome-progress">Step {Math.min(stepIndex + 1, steps.length)} / {steps.length || 6}</div>
+          </div>
 
         {current === 'role_context' ? (
           <section className="step-grid">
@@ -373,6 +441,8 @@ const WelcomeSetupPage = () => {
             <button className="primary-btn" onClick={handleComplete} disabled={loading}>Complete setup</button>
           )}
         </div>
+        </>
+        )}
       </div>
     </div>
   );

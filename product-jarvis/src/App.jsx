@@ -21,6 +21,7 @@ import AuthPage from './pages/AuthPage';
 import SettingsPage from './pages/SettingsPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
 import WelcomeSetupPage from './pages/WelcomeSetupPage';
+import { FeedbackWidget } from './components/FeedbackWidget';
 import { AppProvider, useApp } from './context/AppContext';
 import './index.css';
 import './App.css';
@@ -144,6 +145,7 @@ const WorkspaceShell = () => {
           </Routes>
         </div>
       </main>
+      <FeedbackWidget />
     </div>
   );
 };

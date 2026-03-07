@@ -89,3 +89,73 @@
   color: var(--text-secondary);
   font-size: 0.8rem;
 }
+
+.auth-alpha-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  background: rgba(139, 92, 246, 0.2);
+  color: #a78bfa;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.auth-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.auth-back:hover { color: var(--text-primary); }
+
+.auth-invite-row {
+  display: flex;
+  gap: 8px;
+}
+
+.auth-invite-input {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 10px;
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.auth-invite-input.invalid { border-color: var(--error); }
+.auth-invite-input.valid { border-color: var(--success); }
+
+.auth-invite-accepted {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--success);
+  margin-bottom: 4px;
+}
+
+.auth-waitlist-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.auth-waitlist-done p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}

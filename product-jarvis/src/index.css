@@ -125,3 +125,51 @@ input, textarea {
   border: none;
   outline: none;
 }
+
+/* Error boundary fallback */
+.error-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  text-align: center;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  gap: 0;
+}
+
+.error-fallback h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: var(--error);
+}
+
+.error-fallback p {
+  margin-bottom: 1.5rem;
+  color: var(--text-secondary);
+  max-width: 420px;
+  font-size: 0.9rem;
+}
+
+.error-fallback button {
+  padding: 0.65rem 1.5rem;
+  margin: 0.4rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.error-fallback button:first-of-type {
+  background: var(--accent-primary);
+  color: #fff;
+}
+
+.error-fallback button:last-of-type {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}

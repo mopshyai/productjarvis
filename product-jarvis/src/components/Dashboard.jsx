@@ -106,6 +106,15 @@ const Dashboard = () => {
           <div className="quota-bar">
             <div className="quota-fill" style={{ width: `${quotaPct}%`, background: quotaPct > 80 ? 'var(--warning)' : 'var(--accent-primary)' }} />
           </div>
+          {quotaPct >= 67 && (
+            <div className={`quota-cta ${remaining === 0 ? 'quota-cta-urgent' : ''}`}>
+              {remaining === 0 ? (
+                <>You've hit your monthly limit. <a href="mailto:upgrade@productjarvis.ai">Upgrade for unlimited PRDs →</a></>
+              ) : (
+                <>Only {remaining} PRD{remaining === 1 ? '' : 's'} left this month. <a href="mailto:upgrade@productjarvis.ai">Upgrade →</a></>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="metric-card glass-panel">

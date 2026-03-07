@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import api from '../lib/apiClient';
+import { setSentryUser, setSentryWorkspace } from '../lib/sentry';
+import { identifyUser, setWorkspace, resetUser } from '../lib/posthog';
 
 const AppContext = createContext(null);
 
@@ -23,6 +25,15 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     refreshSession();
   }, []);
+
+  useEffect(() => {
+    if (session?.user) {
+      setSentryUser(session.user);
+      setSentryWorkspace(session.workspace);
+      identifyUser(session.user);
+      setWorkspace(session.workspace);
+    }
+  }, [session]);
 
   const completeOnboarding = async (payload) => {
     setLoading(true);
@@ -61,6 +72,8 @@ export const AppProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    setSentryUser(null);
+    resetUser();
     setLoading(true);
     try {
       const updated = await api.logout();
