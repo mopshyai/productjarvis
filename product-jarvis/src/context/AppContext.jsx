@@ -14,14 +14,16 @@ export const AppProvider = ({ children }) => {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    console.log('🔍 AppContext Debug:', {
-      supabaseConfigured: !!supabase,
-      supabaseUrl: import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_PRODUCTJARVIS_SUPABASE_URL || 'NOT SET',
-      apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'NOT SET',
-      useLiveApi: import.meta.env.VITE_USE_LIVE_API,
-    });
-    if (!supabase) {
-      console.warn('Supabase not configured, using mock mode');
+    if (import.meta.env.DEV) {
+      console.log('🔍 AppContext Debug:', {
+        supabaseConfigured: !!supabase,
+        supabaseUrl: import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_PRODUCTJARVIS_SUPABASE_URL || 'NOT SET',
+        apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'NOT SET',
+        useLiveApi: import.meta.env.VITE_USE_LIVE_API,
+      });
+      if (!supabase) {
+        console.warn('Supabase not configured, using mock mode');
+      }
     }
   }, []);
 
