@@ -164,11 +164,11 @@ const WorkspaceShell = () => {
 const AppRoutes = () => {
   const { session, loading, error, isAuthenticated } = useApp();
 
-  if (loading && !session) {
+  if (loading) {
     return <div className="loading-screen">Loading ProductJarvis...</div>;
   }
 
-  if (error && !session) {
+  if (error) {
     return <div className="loading-screen">{error}</div>;
   }
 

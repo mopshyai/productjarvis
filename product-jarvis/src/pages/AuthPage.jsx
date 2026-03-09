@@ -5,6 +5,22 @@ import { supabase } from '../lib/supabaseClient';
 import './AuthPage.css';
 
 const AuthPage = () => {
+  try {
+    // eslint-disable-next-line react/jsx-no-useless-fragment
+    return AuthPageInner();
+  } catch (error) {
+    console.error('AuthPage crash:', error);
+    return (
+      <div style={{ padding: '2rem', color: 'white', background: '#1a1a2e', minHeight: '100vh' }}>
+        <h1>Auth Error</h1>
+        <p>{error.message}</p>
+        <pre style={{ fontSize: '0.75rem', marginTop: '1rem', opacity: 0.7 }}>{error.stack}</pre>
+      </div>
+    );
+  }
+};
+
+const AuthPageInner = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { signInWithGoogle, isAuthenticated, checkOnboardingStatus, supaSession, loading } = useApp();
@@ -60,7 +76,26 @@ const AuthPage = () => {
           .eq('is_active', true)
           .single();
 
-        if (dbError || !data) {
+        console.log('🔍 Invite validation:', { data, dbError, code });
+
+        if (dbError) {
+          // Table doesn't exist yet — allow through in dev only
+          if (dbError.code === '42P01' || dbError.message?.includes('relation') || dbError.message?.includes('does not exist')) {
+            if (import.meta.env.DEV) {
+              console.warn('⚠️ DEV MODE: invite_codes table not found, bypassing for testing');
+              sessionStorage.setItem('invite_code', code);
+              setMode('login');
+              return;
+            } else {
+              // In production, show error - don't bypass
+              setInviteError('System temporarily unavailable. Please try again later.');
+              return;
+            }
+          }
+          setInviteError('Invalid or expired invite code');
+          return;
+        }
+        if (!data) {
           setInviteError('Invalid or expired invite code');
           return;
         }
@@ -84,6 +119,7 @@ const AuthPage = () => {
       sessionStorage.setItem('invite_code', code);
       setMode('login');
     } catch (err) {
+      console.error('Invite validation error:', err);
       setInviteError('Something went wrong. Please try again.');
     } finally {
       setBusy(false);
@@ -111,7 +147,23 @@ const AuthPage = () => {
           .from('waitlist')
           .insert({ email: waitlistEmail.toLowerCase(), source: 'auth_page' });
 
-        if (dbError && dbError.code !== '23505') throw dbError;
+        if (dbError) {
+          // Ignore duplicate email (23505) and missing table (42P01 in dev only)
+          if (dbError.code === '23505') {
+            // already on waitlist — treat as success
+          } else if (dbError.code === '42P01' || dbError.message?.includes('relation') || dbError.message?.includes('does not exist')) {
+            if (import.meta.env.DEV) {
+              console.warn('⚠️ DEV MODE: waitlist table not found, logging locally');
+              console.info('[Waitlist]', waitlistEmail);
+            } else {
+              // In production, fail silently but log error
+              console.error('Waitlist table error:', dbError);
+              throw new Error('Unable to join waitlist. Please try again later.');
+            }
+          } else {
+            throw dbError;
+          }
+        }
       } else {
         console.info('[Waitlist]', waitlistEmail);
       }

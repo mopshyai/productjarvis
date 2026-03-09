@@ -21,6 +21,10 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+
+  // Skip non-http(s) requests (chrome-extension://, data:, etc.)
+  if (!request.url.startsWith('http')) return;
+
   const url = new URL(request.url);
 
   if (request.method !== 'GET') return;

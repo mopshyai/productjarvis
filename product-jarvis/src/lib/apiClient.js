@@ -76,16 +76,36 @@ function normalizeDigest(payload) {
 }
 
 async function call(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  });
-
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload?.error?.message || payload?.message || 'API request failed');
+  const url = `${API_BASE}${path}`;
+  let response;
+  try {
+    response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      ...options,
+    });
+  } catch (networkError) {
+    console.warn(`API network error: ${url}`, networkError.message);
+    throw new Error('Network unavailable');
   }
-  return payload;
+
+  if (!response.ok) {
+    console.warn(`API ${response.status}: ${url}`);
+    // Try to parse error body, but don't crash if it's HTML
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody?.error?.message || errBody?.message || `API error ${response.status}`);
+    }
+    throw new Error(`API error ${response.status}`);
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    console.warn(`Non-JSON response from: ${url}`);
+    return null;
+  }
+
+  return response.json();
 }
 
 const live = {

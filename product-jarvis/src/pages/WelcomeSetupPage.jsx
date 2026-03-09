@@ -86,12 +86,12 @@ const WelcomeSetupPage = () => {
   }, [session, navigate, getOnboardingSchema]);
 
   useEffect(() => {
-    const run = async () => {
-      const result = await recommendMethodologies({
-        role: answers.role_context.role,
-        stage: answers.product_basics.product_stage,
-        cadence: answers.goals_execution.execution_cadence,
-      });
+    recommendMethodologies({
+      role: answers.role_context.role,
+      stage: answers.product_basics.product_stage,
+      cadence: answers.goals_execution.execution_cadence,
+    }).then((result) => {
+      if (!result) return;
       setAnswers((prev) => ({
         ...prev,
         method_defaults: {
@@ -101,9 +101,10 @@ const WelcomeSetupPage = () => {
         },
       }));
       setRecommendationReason(result.reason || 'Auto-selected by ProductJarvis');
-    };
-    run();
-  }, [answers.role_context.role, answers.product_basics.product_stage, answers.goals_execution.execution_cadence, recommendMethodologies]);
+    }).catch(() => {
+      // Non-fatal — keep defaults
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const steps = schema?.steps || [];
   const current = steps[stepIndex]?.id || 'role_context';
