@@ -1,0 +1,12 @@
+{
+  "enabledPlugins": {
+    "code-review@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "figma@claude-plugins-official": true,
+    "supabase@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "posthog@claude-plugins-official": true,
+    "Notion@claude-plugins-official": true
+  }
+}

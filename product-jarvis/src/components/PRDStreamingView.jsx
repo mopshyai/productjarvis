@@ -10,10 +10,10 @@ const STAGES = [
   { id: 'review', label: 'Running quality check' },
 ];
 
-const PRDStreamingView = ({ featureRequest, onComplete, simulateDuration = 4000 }) => {
+const PRDStreamingView = ({ featureRequest, simulateDuration = 4000 }) => {
   const [stageIndex, setStageIndex] = useState(0);
   const [streamedText, setStreamedText] = useState('');
-  const [done, setDone] = useState(false);
+  const [done] = useState(false);
   const textRef = useRef(null);
 
   // Stage progression

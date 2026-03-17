@@ -1,0 +1,18 @@
+{
+  "service": "productjarvis-api",
+  "status": "ok",
+  "message": "This host serves ProductJarvis API routes only. Use /api/* for requests, and use the web subdomains for browser traffic.",
+  "hosts": {
+    "marketing": "https://www.productjarvis.com",
+    "app": "https://app.productjarvis.com",
+    "auth": "https://auth.productjarvis.com",
+    "admin": "https://admin.productjarvis.com",
+    "docs": "https://docs.productjarvis.com",
+    "blog": "https://blog.productjarvis.com"
+  },
+  "endpoints": {
+    "session": "/api/session",
+    "methodologies": "/api/methodologies",
+    "auth_callback": "/api/auth/callback"
+  }
+}

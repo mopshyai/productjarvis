@@ -27,7 +27,7 @@ Deno.serve(async (request) => {
   try {
     const payload = await body<DetectInput>(request);
 
-    const rl = checkRateLimit(payload.workspace_id, 'decisions-detect');
+    const rl = await checkRateLimit(payload.workspace_id, 'decisions-detect');
     if (!rl.allowed) {
       return errorWithCors(request, `Rate limit exceeded. Retry after ${Math.ceil(rl.retryAfterMs / 1000)}s`, 429, 'RATE_LIMITED');
     }

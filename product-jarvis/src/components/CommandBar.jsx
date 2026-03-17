@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, ArrowRight, CornerDownLeft } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { navigateToSurface, SURFACES } from '../lib/domainRoutes';
 import SourceCitation from './shared/SourceCitation';
 import './CommandBar.css';
 
@@ -49,13 +50,13 @@ const CommandBar = () => {
       setResult(response);
 
       if (response.action_type === 'generate_prd') {
-        navigate('/workspace/prds', { state: { seedFeatureRequest: input } });
+        navigateToSurface(navigate, SURFACES.APP, '/prds', { state: { seedFeatureRequest: input } });
       }
       if (response.action_type === 'search_decisions') {
-        navigate('/workspace/decisions', { state: { seedQuery: input } });
+        navigateToSurface(navigate, SURFACES.APP, '/decisions', { state: { seedQuery: input } });
       }
       if (response.action_type === 'view_digest') {
-        navigate('/workspace/digest');
+        navigateToSurface(navigate, SURFACES.APP, '/digest');
       }
 
       setInput('');

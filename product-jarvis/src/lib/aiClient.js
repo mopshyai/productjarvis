@@ -1,19 +1,31 @@
-// AI client — calls Quatarly gateway directly from the browser.
-// Anthropic format: https://api.quatarly.cloud/
-// OpenAI format:   https://api.quatarly.cloud/v1  (GPT, Gemini models)
+// AI client for optional mock-mode generation. In production, the app should call
+// ProductJarvis APIs instead of hitting an external browser-side gateway directly.
 
-const API_KEY = import.meta.env.VITE_QUATARLY_API_KEY || 'qua_trail_bqmryfxka931zkc9ckpwt991xub8ot22';
+const API_KEY =
+  import.meta.env.VITE_AI_GATEWAY_KEY || '';
 
-const ANTHROPIC_BASE = 'https://api.quatarly.cloud';
-const OPENAI_BASE = 'https://api.quatarly.cloud/v1';
+const GATEWAY_BASE = (
+  import.meta.env.VITE_AI_GATEWAY_BASE ||
+  ''
+).replace(/\/$/, '');
+
+const ANTHROPIC_BASE = GATEWAY_BASE;
+const OPENAI_BASE = GATEWAY_BASE ? `${GATEWAY_BASE}/v1` : '';
 
 // Default models
 const CLAUDE_MODEL = import.meta.env.VITE_CLAUDE_MODEL || 'claude-sonnet-4-6-20250929';
 const GPT_MODEL = import.meta.env.VITE_GPT_MODEL || 'gpt-5.1';
 
+function requireGateway(kind) {
+  if (!GATEWAY_BASE || !API_KEY) {
+    throw new Error(`${kind} gateway is not configured for browser-side mock AI calls.`);
+  }
+}
+
 // ── Anthropic ──────────────────────────────────────────────────────────────────
 
 async function claudeComplete(systemPrompt, userPrompt, { maxTokens = 1500 } = {}) {
+  requireGateway('Anthropic');
   const res = await fetch(`${ANTHROPIC_BASE}/v1/messages`, {
     method: 'POST',
     headers: {
@@ -40,7 +52,8 @@ async function claudeComplete(systemPrompt, userPrompt, { maxTokens = 1500 } = {
 
 // ── OpenAI-compatible (GPT / Gemini) ──────────────────────────────────────────
 
-async function openaiComplete(systemPrompt, userPrompt, { model = GPT_MODEL, maxTokens = 1500 } = {}) {
+export async function openaiComplete(systemPrompt, userPrompt, { model = GPT_MODEL, maxTokens = 1500 } = {}) {
+  requireGateway('OpenAI-compatible');
   const res = await fetch(`${OPENAI_BASE}/chat/completions`, {
     method: 'POST',
     headers: {

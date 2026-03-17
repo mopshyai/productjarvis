@@ -70,11 +70,14 @@ Deno.serve(async (request) => {
     const workspaceId = payload.workspace_id || request.headers.get('x-workspace-id') || '';
 
     if (!workspaceId) return errorWithCors(request, 'workspace_id is required', 400, 'MISSING_PARAMS');
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(workspaceId)) {
+      return errorWithCors(request, 'workspace_id must be a valid UUID', 400, 'INVALID_PARAMS');
+    }
     if (!payload.content?.trim()) return errorWithCors(request, 'content is required', 400, 'MISSING_PARAMS');
     if (!payload.title?.trim()) return errorWithCors(request, 'title is required', 400, 'MISSING_PARAMS');
     if (!payload.source_type) return errorWithCors(request, 'source_type is required', 400, 'MISSING_PARAMS');
 
-    const rl = checkRateLimit(workspaceId, 'evidence-ingest');
+    const rl = await checkRateLimit(workspaceId, 'evidence-ingest');
     if (!rl.allowed) {
       return errorWithCors(request, `Rate limit exceeded. Retry in ${Math.ceil(rl.retryAfterMs / 1000)}s`, 429, 'RATE_LIMITED');
     }
@@ -113,6 +116,7 @@ Deno.serve(async (request) => {
           .insert({
             workspace_id: workspaceId,
             source_type: payload.source_type,
+            source_id: jobId || '',
             source_url: payload.source_url || null,
             job_id: jobId,
             chunk_index: i,

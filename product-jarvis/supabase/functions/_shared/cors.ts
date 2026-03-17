@@ -5,6 +5,11 @@ const ALLOWED_ORIGINS = [
   'https://productjarvis.com',
   'https://www.productjarvis.com',
   'https://app.productjarvis.com',
+  'https://auth.productjarvis.com',
+  'https://admin.productjarvis.com',
+  'https://docs.productjarvis.com',
+  'https://blog.productjarvis.com',
+  'https://api.productjarvis.com',
 ];
 
 function isVercelPreview(origin: string): boolean {

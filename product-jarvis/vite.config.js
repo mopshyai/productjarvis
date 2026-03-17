@@ -74,9 +74,4 @@ export default defineConfig(({ mode }) => ({
 
   // Support both VITE_ and NEXT_PUBLIC_ prefixes for Vercel/Supabase integration
   envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
-
-  define: {
-    __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '1.0.0'),
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-  },
 }));

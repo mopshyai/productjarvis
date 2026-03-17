@@ -2,7 +2,11 @@ import { handleCors, jsonWithCors, errorWithCors } from '../_shared/cors.ts';
 import { body } from '../_shared/http.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { getSupabaseAdminClient } from '../_shared/supabaseClient.ts';
-import { ClaudeProvider } from '../_shared/llm/claude.ts';
+import { runWithFallback } from '../_shared/llm/router.ts';
+import { classifyLlmError } from '../_shared/llm/provider.ts';
+import { parseStrictJson } from '../_shared/validation/responseGuards.ts';
+import { validateRequiredKeys } from '../_shared/validation/schemaValidator.ts';
+import { logPromptRun } from '../_shared/storage.ts';
 
 type OpportunitiesInput = {
   workspace_id: string;
@@ -23,6 +27,8 @@ type Opportunity = {
   suggested_next_step: string;
   citations: Array<{ source_type: string; source_url?: string; excerpt: string }>;
 };
+
+const REQUIRED_KEYS = ['opportunities', 'synthesis_summary', 'evidence_gaps', 'total_evidence_chunks'];
 
 async function embedQuery(text: string): Promise<number[] | null> {
   const openAiKey = Deno.env.get('OPENAI_API_KEY');
@@ -48,7 +54,6 @@ async function retrieveEvidence(workspaceId: string, queryEmbedding: number[] | 
   if (!client) return [];
 
   if (queryEmbedding) {
-    // Vector similarity search via pgvector
     const { data } = await client.rpc('match_document_chunks', {
       query_embedding: queryEmbedding,
       workspace_id_filter: workspaceId,
@@ -57,7 +62,6 @@ async function retrieveEvidence(workspaceId: string, queryEmbedding: number[] | 
     return data || [];
   }
 
-  // Fallback: most recent chunks
   const { data } = await client
     .from('document_chunks')
     .select('content, source_type, source_url, metadata')
@@ -110,13 +114,18 @@ Deno.serve(async (request) => {
 
   if (request.method !== 'POST') return errorWithCors(request, 'Method not allowed', 405, 'METHOD_NOT_ALLOWED');
 
+  const startedAt = Date.now();
+
   try {
     const payload = await body<OpportunitiesInput>(request);
     const workspaceId = payload.workspace_id || request.headers.get('x-workspace-id') || '';
 
     if (!workspaceId) return errorWithCors(request, 'workspace_id is required', 400, 'MISSING_PARAMS');
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(workspaceId)) {
+      return errorWithCors(request, 'workspace_id must be a valid UUID', 400, 'INVALID_PARAMS');
+    }
 
-    const rl = checkRateLimit(workspaceId, 'opportunities-synthesize');
+    const rl = await checkRateLimit(workspaceId, 'opportunities-synthesize');
     if (!rl.allowed) {
       return errorWithCors(request, `Rate limit exceeded. Retry in ${Math.ceil(rl.retryAfterMs / 1000)}s`, 429, 'RATE_LIMITED');
     }
@@ -127,7 +136,6 @@ Deno.serve(async (request) => {
     const queryEmbedding = await embedQuery(query);
     const evidenceChunks = await retrieveEvidence(workspaceId, queryEmbedding, topK);
 
-    // Mock evidence for development when no DB
     const chunks = evidenceChunks.length > 0 ? evidenceChunks : [
       { content: 'Users report friction in the onboarding flow — 40% drop off before completing setup.', source_type: 'user_interview', source_url: null },
       { content: 'Support tickets show 23% of issues relate to export/download failures in the PRD editor.', source_type: 'support_ticket', source_url: null },
@@ -135,16 +143,35 @@ Deno.serve(async (request) => {
     ];
 
     const prompt = buildSynthesisPrompt(query, chunks);
-    const claude = new ClaudeProvider();
-    const llmOutput = await claude.run({ promptId: 'opportunities_synthesize', prompt });
 
-    let parsed: { opportunities: Opportunity[]; synthesis_summary: string; evidence_gaps: string[]; total_evidence_chunks: number };
-    try {
-      const cleaned = llmOutput.rawText.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
-      parsed = JSON.parse(cleaned);
-    } catch {
-      throw new Error('Failed to parse opportunities synthesis response');
-    }
+    const routed = await runWithFallback({
+      promptId: 'opportunities_synthesize',
+      prompt,
+      responseSchemaRequiredKeys: REQUIRED_KEYS,
+    });
+
+    const parsed = parseStrictJson(routed.output.rawText);
+    validateRequiredKeys(parsed, REQUIRED_KEYS);
+
+    const latencyMs = Date.now() - startedAt;
+
+    await logPromptRun({
+      workspace_id: workspaceId,
+      prompt_id: 'opportunities_synthesize',
+      prompt_version: 'v1',
+      provider_used: routed.output.provider,
+      fallback_used: routed.fallbackUsed,
+      fallback_reason: routed.fallbackReason,
+      attempt_count: routed.attemptCount,
+      provider_chain: routed.providerChain,
+      failure_classification: routed.failureClassification,
+      repair_attempted: routed.repairAttempted,
+      latency_ms: latencyMs,
+      input_json: { query, top_k: topK, evidence_count: chunks.length },
+      output_json: parsed,
+      validation_status: 'pass',
+      error_code: null,
+    });
 
     return jsonWithCors(request, {
       ...parsed,
@@ -152,12 +179,40 @@ Deno.serve(async (request) => {
       workspace_id: workspaceId,
       query,
       _meta: {
-        provider_used: llmOutput.provider,
+        provider_used: routed.output.provider,
+        fallback_used: routed.fallbackUsed,
         retrieval_strategy: queryEmbedding ? 'vector_similarity' : 'recency_fallback',
         top_k: topK,
+        latency_ms: latencyMs,
       },
     });
   } catch (err) {
+    const latencyMs = Date.now() - startedAt;
+    const failureClassification = classifyLlmError(err);
+
+    try {
+      const workspaceId = (err as { workspace_id?: string })?.workspace_id || 'unknown';
+      await logPromptRun({
+        workspace_id: workspaceId,
+        prompt_id: 'opportunities_synthesize',
+        prompt_version: 'v1',
+        provider_used: 'unknown',
+        fallback_used: false,
+        fallback_reason: null,
+        attempt_count: 1,
+        provider_chain: [],
+        failure_classification: failureClassification,
+        repair_attempted: false,
+        latency_ms: latencyMs,
+        input_json: {},
+        output_json: {},
+        validation_status: 'fail',
+        error_code: err instanceof Error ? err.message : 'OPPORTUNITIES_SYNTHESIS_FAILED',
+      });
+    } catch {
+      // Best-effort telemetry
+    }
+
     const message = err instanceof Error ? err.message : typeof err === 'object' && err && 'message' in err ? String(err.message) : 'Opportunity synthesis failed';
     return errorWithCors(request, message, 400, 'OPPORTUNITIES_SYNTHESIS_FAILED');
   }

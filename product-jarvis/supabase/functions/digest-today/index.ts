@@ -11,7 +11,7 @@ Deno.serve(async (request) => {
   try {
     const workspaceId = request.headers.get('x-workspace-id') || 'ws_default';
 
-    const rl = checkRateLimit(workspaceId, 'digest-today');
+    const rl = await checkRateLimit(workspaceId, 'digest-today');
     if (!rl.allowed) {
       return errorWithCors(request, `Rate limit exceeded. Retry after ${Math.ceil(rl.retryAfterMs / 1000)}s`, 429, 'RATE_LIMITED');
     }

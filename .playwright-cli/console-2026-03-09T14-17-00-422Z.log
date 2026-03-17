@@ -1,0 +1,4 @@
+[     563ms] TypeError: e is not a function
+    at https://api.productjarvis.com/assets/index-Csa7724J.js:2:230735
+[    1564ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ https://api.quatarly.cloud/api/session:0
+[    2082ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ https://api.quatarly.cloud/api/events:0

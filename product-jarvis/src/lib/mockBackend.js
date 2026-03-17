@@ -640,7 +640,7 @@ export async function previewTickets({ prd_id, tracker, constraints }) {
 
   try {
     const result = await ai.aiGenerateTickets(prd.feature_request, prd.body, tracker, count);
-    const tickets = (result.tickets || []).map((t, idx) => ({ id: id('ticket_draft'), ...t, id: `ticket_draft_${idx + 1}` }));
+    const tickets = (result.tickets || []).map((t, idx) => ({ ...t, id: `ticket_draft_${idx + 1}` }));
     return {
       tickets,
       dependencies: result.dependencies || [],

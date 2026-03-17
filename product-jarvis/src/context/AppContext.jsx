@@ -1,10 +1,18 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import api from '../lib/apiClient';
+import { getApiBaseUrl, getDomainHref, SURFACES } from '../lib/domainRoutes';
 import { supabase } from '../lib/supabaseClient';
 import { setSentryUser, setSentryWorkspace } from '../lib/sentry';
 import { identifyUser, setWorkspace, resetUser } from '../lib/posthog';
 
 const AppContext = createContext(null);
+
+function getWorkspaceAccessFromSession(session) {
+  return {
+    hasWorkspace: Boolean(session?.workspace),
+    onboardingComplete: Boolean(session?.workspace?.onboarding_complete),
+  };
+}
 
 export const AppProvider = ({ children }) => {
   const [session, setSession] = useState(null);
@@ -12,31 +20,38 @@ export const AppProvider = ({ children }) => {
   const [supaSession, setSupaSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [workspaceAccess, setWorkspaceAccess] = useState({
+    checked: false,
+    ...getWorkspaceAccessFromSession(null),
+  });
+  const [workspaceAccessLoading, setWorkspaceAccessLoading] = useState(false);
 
   useEffect(() => {
     if (import.meta.env.DEV) {
       console.log('🔍 AppContext Debug:', {
         supabaseConfigured: !!supabase,
         supabaseUrl: import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_PRODUCTJARVIS_SUPABASE_URL || 'NOT SET',
-        apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'NOT SET',
-        useLiveApi: import.meta.env.VITE_USE_LIVE_API,
+        apiBaseUrl: getApiBaseUrl() || getDomainHref(SURFACES.API, '/'),
       });
       if (!supabase) {
-        console.warn('Supabase not configured, using mock mode');
+        console.warn('Supabase not configured');
       }
     }
   }, []);
 
-  // ── Mock API session (product data) ──────────────────────────────────────────
+  // ── Session data (workspace, integrations) ──────────────────────────────────
   const refreshSession = async () => {
+    if (!supaSession?.user?.id) {
+      setSession(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       setError('');
       const data = await api.getSession();
       setSession(data);
     } catch (err) {
-      // /api/session may not exist yet (404) or network may be unavailable.
-      // Treat this as "no session" rather than a fatal error — Supabase auth
-      // is the source of truth for authentication.
       console.warn('Session fetch failed (non-fatal):', err.message);
       setSession(null);
     } finally {
@@ -45,25 +60,36 @@ export const AppProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    refreshSession();
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+    // Session is fetched when supaSession changes (see below)
   }, []);
 
   // ── Supabase real auth ────────────────────────────────────────────────────────
   useEffect(() => {
     if (!supabase) return;
 
-    // Get initial Supabase session
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSupaSession(s);
+      if (!s) {
+        setLoading(false);
+      }
     });
 
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSupaSession(s);
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // ── Refresh product session when Supabase auth changes ───────────────────────
+  useEffect(() => {
+    refreshSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supaSession?.user?.id]);
 
   // ── Analytics sync ────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -77,22 +103,12 @@ export const AppProvider = ({ children }) => {
 
   // ── Auth methods ──────────────────────────────────────────────────────────────
   const signInWithGoogle = async () => {
-    if (!supabase) {
-      // Mock fallback
-      setLoading(true);
-      try {
-        const updated = await api.signInWithGoogle();
-        setSession(updated);
-        return updated;
-      } finally {
-        setLoading(false);
-      }
-    }
+    if (!supabase) throw new Error('Supabase is not configured');
 
     const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getDomainHref(SURFACES.AUTH, '/callback'),
         queryParams: {
           access_type: 'offline',
           prompt: 'select_account',
@@ -128,24 +144,23 @@ export const AppProvider = ({ children }) => {
       const updated = await api.logout();
       setSession(updated);
       setSupaSession(null);
+      setWorkspaceAccess({
+        checked: true,
+        ...getWorkspaceAccessFromSession(updated),
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const checkOnboardingStatus = async (userId) => {
-    if (!supabase) {
-      return {
-        hasWorkspace: Boolean(session?.workspace),
-        onboardingComplete: Boolean(session?.workspace?.onboarding_complete),
-      };
-    }
+    if (!supabase) return { hasWorkspace: false, onboardingComplete: false };
 
     const { data, error: dbError } = await supabase
       .from('workspace_members')
       .select('workspace_id, workspaces(onboarding_complete)')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (dbError || !data) {
       return { hasWorkspace: false, onboardingComplete: false };
@@ -157,12 +172,50 @@ export const AppProvider = ({ children }) => {
     };
   };
 
+  const refreshWorkspaceAccess = async (userId = supaSession?.user?.id) => {
+    if (!supabase || !userId) {
+      const status = getWorkspaceAccessFromSession(session);
+      setWorkspaceAccess({ checked: true, ...status });
+      return status;
+    }
+
+    setWorkspaceAccessLoading(true);
+    try {
+      const status = await checkOnboardingStatus(userId);
+      setWorkspaceAccess({ checked: true, ...status });
+      return status;
+    } finally {
+      setWorkspaceAccessLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!supaSession?.user?.id) {
+      setWorkspaceAccess({
+        checked: true,
+        ...getWorkspaceAccessFromSession(session),
+      });
+      return;
+    }
+
+    refreshWorkspaceAccess(supaSession.user.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    session?.workspace?.id,
+    session?.workspace?.onboarding_complete,
+    supaSession?.user?.id,
+  ]);
+
   // ── Onboarding ────────────────────────────────────────────────────────────────
   const completeOnboarding = async (payload) => {
     setLoading(true);
     try {
       const updated = await api.completeOnboarding(payload);
       setSession(updated);
+      setWorkspaceAccess({
+        checked: true,
+        ...getWorkspaceAccessFromSession(updated),
+      });
     } finally {
       setLoading(false);
     }
@@ -176,6 +229,10 @@ export const AppProvider = ({ children }) => {
     try {
       const updated = await api.completeAdaptiveOnboarding(payload);
       setSession(updated);
+      setWorkspaceAccess({
+        checked: true,
+        ...getWorkspaceAccessFromSession(updated),
+      });
       return updated;
     } finally {
       setLoading(false);
@@ -191,7 +248,10 @@ export const AppProvider = ({ children }) => {
     loading,
     error,
     isAuthenticated: Boolean(supaSession) || Boolean(session?.auth?.authenticated),
+    workspaceAccess,
+    workspaceAccessLoading,
     refreshSession,
+    refreshWorkspaceAccess,
     completeOnboarding,
     signInWithGoogle,
     sendMagicLink,

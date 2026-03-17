@@ -1,7 +1,6 @@
-import * as mock from './mockBackend';
+import { getApiBaseUrl } from './domainRoutes';
 
-const USE_LIVE = import.meta.env.VITE_USE_LIVE_API === 'true';
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE = getApiBaseUrl();
 
 function normalizeCommandResponse(payload) {
   if (payload?.action_type) return payload;
@@ -213,11 +212,12 @@ const live = {
       `/api/integrations/auth/start?provider=${encodeURIComponent(provider)}&workspace_id=${encodeURIComponent(workspaceId)}`,
       { method: 'GET' }
     );
-    const code = start.dev_authorization_code || '';
-    return call(
-      `/api/integrations/auth/callback?provider=${encodeURIComponent(provider)}&workspace_id=${encodeURIComponent(workspaceId)}&code=${encodeURIComponent(code)}`,
-      { method: 'GET', headers: { 'x-oauth-state': start.state || '' } }
-    );
+    // Redirect browser to OAuth provider
+    if (start.auth_url) {
+      window.location.href = start.auth_url;
+      return { redirecting: true };
+    }
+    throw new Error('No auth URL returned');
   },
   async refreshIntegration(provider, workspaceId = 'ws_1') {
     return call('/api/integrations/refresh', {
@@ -239,22 +239,4 @@ const live = {
   },
 };
 
-const mockExtended = {
-  ...mock,
-  signInWithGoogle: mock.signInWithGoogle,
-  sendMagicLink: mock.sendMagicLink,
-  authCallback: mock.authCallback,
-  logout: mock.logout,
-  getOnboardingSchema: mock.getOnboardingSchema,
-  saveOnboardingAnswer: mock.saveOnboardingAnswer,
-  completeAdaptiveOnboarding: mock.completeAdaptiveOnboarding,
-  recommendMethodologies: mock.recommendMethodologies,
-  trackEvent: mock.trackEvent,
-  getCutoverHealth: mock.getCutoverHealth,
-  ingestEvidence: mock.ingestEvidence,
-  synthesizeOpportunities: mock.synthesizeOpportunities,
-};
-
-const api = USE_LIVE ? live : mockExtended;
-
-export default api;
+export default live;

@@ -37,7 +37,7 @@ const INTEGRATIONS_META = {
 };
 
 const SettingsPage = () => {
-  const { session, api, refreshSession } = useApp();
+  const { session, api } = useApp();
   const workspace = session?.workspace || {};
   const integrations = session?.integrations || {};
   const [saved, setSaved] = useState(false);
@@ -54,12 +54,13 @@ const SettingsPage = () => {
     setConnecting(provider);
     setConnectMsg('');
     try {
+      // Store provider + workspace so callback page can read them
+      localStorage.setItem('oauth_provider', provider);
+      localStorage.setItem('oauth_workspace_id', workspace.id || 'ws_1');
       await api.connectIntegration(provider, workspace.id || 'ws_1');
-      await refreshSession();
-      setConnectMsg(`${INTEGRATIONS_META[provider]?.label || provider} connected!`);
+      // connectIntegration redirects the browser — nothing runs after this
     } catch (err) {
       setConnectMsg(err.message || 'Connection failed');
-    } finally {
       setConnecting(null);
       setTimeout(() => setConnectMsg(''), 3000);
     }
@@ -132,10 +133,8 @@ const SettingsPage = () => {
             style={inputStyle}
           />
         </SettingsRow>
-        <SettingsRow label="Live API Mode" description="Toggle between mock and live Supabase backend">
-          <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>
-            {import.meta.env.VITE_USE_LIVE_API === 'true' ? '✓ Live' : '⚠ Mock — set VITE_USE_LIVE_API=true to enable'}
-          </span>
+        <SettingsRow label="Live API Mode" description="All requests go to the live Supabase backend">
+          <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>✓ Live</span>
         </SettingsRow>
       </Section>
 

@@ -3,6 +3,8 @@ import { jsonWithCors, errorWithCors, handleCors } from '../_shared/cors.ts';
 import { checkRateLimit } from '../_shared/rateLimit.ts';
 import { getIntegrationStatus } from '../_shared/integrationsStore.ts';
 import { getPrdRecord, getTicketDrafts, logAuditEvent, persistTicketPushResults } from '../_shared/domainStore.ts';
+import { decryptToken } from '../_shared/tokenEncryption.ts';
+import { getSupabaseAdminClient } from '../_shared/supabaseClient.ts';
 
 type PushInput = {
   workspace_id?: string;
@@ -13,44 +15,142 @@ type PushInput = {
   approval_token: string;
 };
 
-function deterministicId(prefix: string, base: string, idx: number) {
-  const normalized = `${base}_${idx}`.replace(/[^a-zA-Z0-9]+/g, '').toUpperCase().slice(0, 6) || 'PRD';
-  return `${prefix}-${normalized}-${100 + idx}`;
+type StoredTokens = {
+  access_token: string;
+  refresh_token?: string;
+};
+
+async function getAccessToken(workspaceId: string, provider: 'jira' | 'linear'): Promise<string> {
+  const client = getSupabaseAdminClient();
+  if (!client) throw new Error('Database not available');
+
+  const { data } = await client
+    .from('integrations')
+    .select('encrypted_tokens')
+    .eq('workspace_id', workspaceId)
+    .eq('provider', provider)
+    .eq('status', 'connected')
+    .single();
+
+  if (!data?.encrypted_tokens) throw new Error(`No tokens found for ${provider}`);
+
+  const decrypted = await decryptToken(data.encrypted_tokens);
+  const tokens: StoredTokens = JSON.parse(decrypted);
+  return tokens.access_token;
 }
 
-async function pushTicketWithRetry(
+async function pushToJira(
+  ticket: Record<string, unknown>,
+  projectId: string,
+  accessToken: string
+): Promise<{ ok: true; externalId: string } | { ok: false; code: string; message: string; retryable: boolean }> {
+  // First, get the cloud ID for this Jira instance
+  const sitesRes = await fetch('https://api.atlassian.com/oauth/token/accessible-resources', {
+    headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+  });
+
+  if (!sitesRes.ok) {
+    return { ok: false, code: 'JIRA_SITES_FAILED', message: 'Failed to fetch Jira sites', retryable: false };
+  }
+
+  const sites = await sitesRes.json();
+  if (!sites.length) {
+    return { ok: false, code: 'JIRA_NO_SITES', message: 'No Jira sites accessible', retryable: false };
+  }
+
+  const cloudId = sites[0].id;
+
+  const res = await fetch(`https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/issue`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      fields: {
+        project: { key: projectId },
+        summary: String(ticket.title || 'Untitled'),
+        description: {
+          type: 'doc',
+          version: 1,
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: String(ticket.description || '') }] }],
+        },
+        issuetype: { name: 'Story' },
+        ...(ticket.story_points != null ? { story_points: Number(ticket.story_points) } : {}),
+      },
+    }),
+  });
+
+  if (res.status === 429) {
+    return { ok: false, code: 'PROVIDER_429', message: 'Rate limited by Jira', retryable: true };
+  }
+
+  if (!res.ok) {
+    const err = await res.text();
+    return { ok: false, code: 'JIRA_CREATE_FAILED', message: `Jira issue creation failed: ${err}`, retryable: false };
+  }
+
+  const created = await res.json();
+  return { ok: true, externalId: created.key };
+}
+
+async function pushToLinear(
+  ticket: Record<string, unknown>,
+  teamId: string,
+  accessToken: string
+): Promise<{ ok: true; externalId: string } | { ok: false; code: string; message: string; retryable: boolean }> {
+  const mutation = `
+    mutation CreateIssue($title: String!, $description: String, $teamId: String!, $estimate: Int) {
+      issueCreate(input: { title: $title, description: $description, teamId: $teamId, estimate: $estimate }) {
+        success
+        issue { id identifier url }
+      }
+    }
+  `;
+
+  const res = await fetch('https://api.linear.app/graphql', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: mutation,
+      variables: {
+        title: String(ticket.title || 'Untitled'),
+        description: String(ticket.description || ''),
+        teamId,
+        estimate: ticket.story_points != null ? Number(ticket.story_points) : undefined,
+      },
+    }),
+  });
+
+  if (res.status === 429) {
+    return { ok: false, code: 'PROVIDER_429', message: 'Rate limited by Linear', retryable: true };
+  }
+
+  if (!res.ok) {
+    const err = await res.text();
+    return { ok: false, code: 'LINEAR_CREATE_FAILED', message: `Linear issue creation failed: ${err}`, retryable: false };
+  }
+
+  const result = await res.json();
+  if (!result?.data?.issueCreate?.success) {
+    const gqlErrors = result?.errors?.map((e: { message: string }) => e.message).join(', ') || 'Unknown error';
+    return { ok: false, code: 'LINEAR_CREATE_FAILED', message: gqlErrors, retryable: false };
+  }
+
+  return { ok: true, externalId: result.data.issueCreate.issue.identifier };
+}
+
+async function pushTicket(
   ticket: Record<string, unknown>,
   tracker: 'jira' | 'linear',
   projectId: string,
-  idx: number
+  accessToken: string
 ) {
-  const title = String(ticket.title || '');
-  const shouldFail = /fail|blocked|error/i.test(title);
-  const code = shouldFail ? 'PROVIDER_429' : '';
-  const retryable = code === 'PROVIDER_429';
-
-  const runAttempt = (attempt: number) => {
-    if (!shouldFail || attempt === 2) {
-      return {
-        ok: true as const,
-        externalId: deterministicId(tracker.toUpperCase(), `${projectId}_${title || 'ticket'}`, idx + attempt),
-      };
-    }
-    return {
-      ok: false as const,
-      code,
-      message: 'Rate limited by provider',
-      retryable,
-    };
-  };
-
-  const first = runAttempt(1);
-  if (first.ok) return { ...first, attempts: 1 };
-  if (!first.retryable) return { ...first, attempts: 1 };
-
-  const second = runAttempt(2);
-  if (second.ok) return { ...second, attempts: 2 };
-  return { ...second, attempts: 2 };
+  if (tracker === 'jira') return pushToJira(ticket, projectId, accessToken);
+  return pushToLinear(ticket, projectId, accessToken);
 }
 
 Deno.serve(async (request) => {
@@ -71,7 +171,7 @@ Deno.serve(async (request) => {
       return errorWithCors(request, 'workspace_id and prd_id are required', 400, 'MISSING_PARAMS');
     }
 
-    const rl = checkRateLimit(workspaceId, 'prd-tickets-push');
+    const rl = await checkRateLimit(workspaceId, 'prd-tickets-push');
     if (!rl.allowed) {
       return errorWithCors(request, `Rate limit exceeded. Retry after ${Math.ceil(rl.retryAfterMs / 1000)}s`, 429, 'RATE_LIMITED');
     }
@@ -91,6 +191,8 @@ Deno.serve(async (request) => {
     if (!connected) {
       return errorWithCors(request, `${payload.tracker.toUpperCase()} integration is not connected`, 400, 'INTEGRATION_NOT_CONNECTED');
     }
+
+    const accessToken = await getAccessToken(workspaceId, payload.tracker);
 
     let drafts = await getTicketDrafts(workspaceId, prdId, payload.tracker);
     if (!drafts.length) {
@@ -124,10 +226,20 @@ Deno.serve(async (request) => {
     for (let i = 0; i < drafts.length; i += 1) {
       const draft = drafts[i];
       const ticket = draft.draft || {};
-      const pushed = await pushTicketWithRetry(ticket, payload.tracker, payload.project_id, i);
+      const pushed = await pushTicket(ticket, payload.tracker, payload.project_id, accessToken);
+
       if (pushed.ok) {
         successes.push({ ticket, externalId: pushed.externalId });
       } else {
+        // Retry once on rate limit
+        if (pushed.retryable) {
+          await new Promise((r) => setTimeout(r, 1000));
+          const retry = await pushTicket(ticket, payload.tracker, payload.project_id, accessToken);
+          if (retry.ok) {
+            successes.push({ ticket, externalId: retry.externalId });
+            continue;
+          }
+        }
         failed.push({
           ticket_id: String((ticket as { id?: string }).id || draft.id),
           code: pushed.code,

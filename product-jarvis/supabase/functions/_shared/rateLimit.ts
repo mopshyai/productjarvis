@@ -1,9 +1,8 @@
 import { getSupabaseAdminClient } from './supabaseClient.ts';
 
-const inMemoryCounters = new Map<string, { count: number; resetAt: number }>();
-
 const LIMITS: Record<string, { max: number; windowMs: number }> = {
   'prd-generate': { max: 10, windowMs: 3600_000 },
+  'prd-update': { max: 30, windowMs: 3600_000 },
   'command-execute': { max: 60, windowMs: 3600_000 },
   'prd-tickets-preview': { max: 20, windowMs: 3600_000 },
   'prd-tickets-push': { max: 10, windowMs: 3600_000 },
@@ -12,27 +11,40 @@ const LIMITS: Record<string, { max: number; windowMs: number }> = {
   'digest-today': { max: 30, windowMs: 3600_000 },
   'prd-health-score': { max: 30, windowMs: 3600_000 },
   'stakeholder-update': { max: 20, windowMs: 3600_000 },
+  'evidence-ingest': { max: 30, windowMs: 3600_000 },
+  'opportunities-synthesize': { max: 20, windowMs: 3600_000 },
   default: { max: 120, windowMs: 3600_000 },
 };
 
-export function checkRateLimit(workspaceId: string, endpoint: string): { allowed: boolean; remaining: number; retryAfterMs: number } {
+export async function checkRateLimit(workspaceId: string, endpoint: string): Promise<{ allowed: boolean; remaining: number; retryAfterMs: number }> {
   const limit = LIMITS[endpoint] || LIMITS.default;
-  const key = `${workspaceId}:${endpoint}`;
-  const now = Date.now();
 
-  let entry = inMemoryCounters.get(key);
-  if (!entry || now > entry.resetAt) {
-    entry = { count: 0, resetAt: now + limit.windowMs };
-    inMemoryCounters.set(key, entry);
+  const client = getSupabaseAdminClient();
+  if (!client || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(workspaceId)) {
+    return { allowed: true, remaining: limit.max, retryAfterMs: 0 };
   }
 
-  entry.count += 1;
+  try {
+    const { data } = await client.rpc('check_and_increment_rate_limit', {
+      p_workspace_id: workspaceId,
+      p_endpoint: endpoint,
+      p_max_requests: limit.max,
+      p_window_ms: limit.windowMs,
+    });
 
-  if (entry.count > limit.max) {
-    return { allowed: false, remaining: 0, retryAfterMs: entry.resetAt - now };
+    if (data && data.length > 0) {
+      const row = data[0];
+      return {
+        allowed: row.allowed,
+        remaining: row.remaining,
+        retryAfterMs: row.retry_after_ms,
+      };
+    }
+
+    return { allowed: true, remaining: limit.max, retryAfterMs: 0 };
+  } catch {
+    return { allowed: true, remaining: limit.max, retryAfterMs: 0 };
   }
-
-  return { allowed: true, remaining: limit.max - entry.count, retryAfterMs: 0 };
 }
 
 export async function checkUsageQuota(workspaceId: string): Promise<{ allowed: boolean; used: number; limit: number; message: string }> {

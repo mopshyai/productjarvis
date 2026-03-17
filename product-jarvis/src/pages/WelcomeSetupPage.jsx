@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Zap, Settings } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { navigateToSurface, SURFACES } from '../lib/domainRoutes';
 import './WelcomeSetupPage.css';
 
 const methodOptions = [
@@ -74,11 +75,11 @@ const WelcomeSetupPage = () => {
 
   useEffect(() => {
     if (!session?.auth?.authenticated) {
-      navigate('/auth', { replace: true });
+      navigateToSurface(navigate, SURFACES.AUTH, '/', { replace: true });
       return;
     }
     if (session?.workspace?.onboarding_complete) {
-      navigate('/workspace', { replace: true });
+      navigateToSurface(navigate, SURFACES.APP, '/', { replace: true });
       return;
     }
 
@@ -171,7 +172,7 @@ const WelcomeSetupPage = () => {
         },
         answers: defaultAnswers,
       });
-      navigate('/workspace', { replace: true });
+      navigateToSurface(navigate, SURFACES.APP, '/', { replace: true });
     } catch (err) {
       setError(err.message || 'Quick start failed');
     }
@@ -228,7 +229,7 @@ const WelcomeSetupPage = () => {
         },
         answers,
       });
-      navigate('/workspace', { replace: true });
+      navigateToSurface(navigate, SURFACES.APP, '/', { replace: true });
     } catch (err) {
       setError(err.message || 'Failed to complete setup');
     }
@@ -245,7 +246,7 @@ const WelcomeSetupPage = () => {
             <p className="setup-mode-subtitle">How do you want to get started?</p>
             <div className="setup-mode-grid">
               <button className="setup-mode-card glass-panel" onClick={handleQuickStart} disabled={loading}>
-                <Zap size={28} style={{ color: 'var(--warning)' }} />
+                <Zap size={28} style={{ color: 'var(--color-warning)' }} />
                 <div>
                   <strong>Quick Start</strong>
                   <p>Jump in now. We'll apply smart defaults and you can customize later.</p>
@@ -253,7 +254,7 @@ const WelcomeSetupPage = () => {
                 </div>
               </button>
               <button className="setup-mode-card glass-panel" onClick={() => setSetupMode('full')}>
-                <Settings size={28} style={{ color: 'var(--accent-primary)' }} />
+                <Settings size={28} style={{ color: 'var(--color-accent)' }} />
                 <div>
                   <strong>Full Setup</strong>
                   <p>Personalize your workspace: role, OKRs, methodology, integrations.</p>
@@ -434,12 +435,12 @@ const WelcomeSetupPage = () => {
 
         {error ? <p className="error-text">{error}</p> : null}
 
-        <div className="step-actions">
-          <button className="ghost-btn" onClick={handleBack} disabled={stepIndex === 0 || loading}>Back</button>
+        <div className="welcome-actions">
+          <button className="btn-secondary" onClick={handleBack} disabled={stepIndex === 0 || loading}>Back</button>
           {stepIndex < steps.length - 1 ? (
-            <button className="primary-btn" onClick={handleNext} disabled={loading}>Continue</button>
+            <button className="btn-primary" onClick={handleNext} disabled={loading}>Continue</button>
           ) : (
-            <button className="primary-btn" onClick={handleComplete} disabled={loading}>Complete setup</button>
+            <button className="btn-primary" onClick={handleComplete} disabled={loading}>Complete setup</button>
           )}
         </div>
         </>

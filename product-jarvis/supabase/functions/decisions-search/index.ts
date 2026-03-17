@@ -39,7 +39,7 @@ Deno.serve(async (request) => {
       return errorWithCors(request, 'workspace_id is required', 400, 'MISSING_PARAMS');
     }
 
-    const rl = checkRateLimit(payload.workspace_id, 'decisions-search');
+    const rl = await checkRateLimit(payload.workspace_id, 'decisions-search');
     if (!rl.allowed) {
       return errorWithCors(request, `Rate limit exceeded. Retry after ${Math.ceil(rl.retryAfterMs / 1000)}s`, 429, 'RATE_LIMITED');
     }

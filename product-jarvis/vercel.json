@@ -1,29 +1,395 @@
 {
-  "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "redirects": [
-    { "source": "/", "has": [{ "type": "host", "value": "app.productjarvis.com" }], "destination": "https://app.productjarvis.com/workspace", "permanent": false },
-    { "source": "/", "has": [{ "type": "host", "value": "auth.productjarvis.com" }], "destination": "https://app.productjarvis.com/auth", "permanent": false },
-    { "source": "/", "has": [{ "type": "host", "value": "admin.productjarvis.com" }], "destination": "https://app.productjarvis.com/workspace/settings", "permanent": false },
-    { "source": "/", "has": [{ "type": "host", "value": "status.productjarvis.com" }], "destination": "https://app.productjarvis.com/workspace/digest", "permanent": false },
-    { "source": "/", "has": [{ "type": "host", "value": "www.productjarvis.com" }], "destination": "https://productjarvis.com", "permanent": true },
-    { "source": "/", "has": [{ "type": "host", "value": "docs.productjarvis.com" }], "destination": "https://productjarvis.com", "permanent": false },
-    { "source": "/", "has": [{ "type": "host", "value": "blog.productjarvis.com" }], "destination": "https://productjarvis.com", "permanent": false },
-    { "source": "/", "has": [{ "type": "host", "value": "cdn.productjarvis.com" }], "destination": "https://productjarvis.com", "permanent": false }
-  ],
+  "framework": "vite",
+  "cleanUrls": true,
+  "trailingSlash": false,
   "rewrites": [
-    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/session",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/session"
+    },
+    {
+      "source": "/api/v1/session",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/session"
+    },
+    {
+      "source": "/api/auth/magic-link",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/auth-magic-link"
+    },
+    {
+      "source": "/api/v1/auth/magic-link",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/auth-magic-link"
+    },
+    {
+      "source": "/api/auth/callback",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/auth-callback"
+    },
+    {
+      "source": "/api/v1/auth/callback",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/auth-callback"
+    },
+    {
+      "source": "/api/logout",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/logout"
+    },
+    {
+      "source": "/api/v1/logout",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/logout"
+    },
+    {
+      "source": "/api/onboarding/schema",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/onboarding-schema"
+    },
+    {
+      "source": "/api/v1/onboarding/schema",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/onboarding-schema"
+    },
+    {
+      "source": "/api/onboarding/answers",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/onboarding-answers"
+    },
+    {
+      "source": "/api/v1/onboarding/answers",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/onboarding-answers"
+    },
+    {
+      "source": "/api/onboarding/complete",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/onboarding-complete"
+    },
+    {
+      "source": "/api/v1/onboarding/complete",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/onboarding-complete"
+    },
+    {
+      "source": "/api/methodologies/recommend",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/methodologies-recommend"
+    },
+    {
+      "source": "/api/v1/methodologies/recommend",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/methodologies-recommend"
+    },
+    {
+      "source": "/api/methodologies/validate",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/methodologies-validate"
+    },
+    {
+      "source": "/api/v1/methodologies/validate",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/methodologies-validate"
+    },
+    {
+      "source": "/api/methodologies",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/methodologies"
+    },
+    {
+      "source": "/api/v1/methodologies",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/methodologies"
+    },
+    {
+      "source": "/api/command/execute",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/command-execute"
+    },
+    {
+      "source": "/api/v1/command/execute",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/command-execute"
+    },
+    {
+      "source": "/api/prd/generate",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/prd-generate"
+    },
+    {
+      "source": "/api/v1/prd/generate",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/prd-generate"
+    },
+    {
+      "source": "/api/prd/update",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/prd-update"
+    },
+    {
+      "source": "/api/v1/prd/update",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/prd-update"
+    },
+    {
+      "source": "/api/prd/:id/tickets/preview",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/prd-tickets-preview?prd_id=:id"
+    },
+    {
+      "source": "/api/v1/prd/:id/tickets/preview",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/prd-tickets-preview?prd_id=:id"
+    },
+    {
+      "source": "/api/prd/:id/tickets/push",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/prd-tickets-push?prd_id=:id"
+    },
+    {
+      "source": "/api/v1/prd/:id/tickets/push",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/prd-tickets-push?prd_id=:id"
+    },
+    {
+      "source": "/api/prd/health-score",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/prd-health-score"
+    },
+    {
+      "source": "/api/v1/prd/health-score",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/prd-health-score"
+    },
+    {
+      "source": "/api/decisions/search",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/decisions-search"
+    },
+    {
+      "source": "/api/v1/decisions/search",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/decisions-search"
+    },
+    {
+      "source": "/api/decisions/detect",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/decisions-detect"
+    },
+    {
+      "source": "/api/v1/decisions/detect",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/decisions-detect"
+    },
+    {
+      "source": "/api/digest/today",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/digest-today"
+    },
+    {
+      "source": "/api/v1/digest/today",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/digest-today"
+    },
+    {
+      "source": "/api/stakeholder/update",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/stakeholder-update"
+    },
+    {
+      "source": "/api/v1/stakeholder/update",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/stakeholder-update"
+    },
+    {
+      "source": "/api/integrations/status",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/integrations-status"
+    },
+    {
+      "source": "/api/v1/integrations/status",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/integrations-status"
+    },
+    {
+      "source": "/api/integrations/auth/start",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/integrations-auth-start"
+    },
+    {
+      "source": "/api/v1/integrations/auth/start",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/integrations-auth-start"
+    },
+    {
+      "source": "/api/integrations/auth/callback",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/integrations-auth-callback"
+    },
+    {
+      "source": "/api/v1/integrations/auth/callback",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/integrations-auth-callback"
+    },
+    {
+      "source": "/api/integrations/refresh",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/integrations-refresh"
+    },
+    {
+      "source": "/api/v1/integrations/refresh",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/integrations-refresh"
+    },
+    {
+      "source": "/api/events",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/events"
+    },
+    {
+      "source": "/api/v1/events",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/events"
+    },
+    {
+      "source": "/api/cutover-health",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/cutover-health"
+    },
+    {
+      "source": "/api/v1/cutover-health",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/cutover-health"
+    },
+    {
+      "source": "/api/evidence/ingest",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/evidence-ingest"
+    },
+    {
+      "source": "/api/v1/evidence/ingest",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/evidence-ingest"
+    },
+    {
+      "source": "/api/opportunities/synthesize",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/opportunities-synthesize"
+    },
+    {
+      "source": "/api/v1/opportunities/synthesize",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/opportunities-synthesize"
+    },
+    {
+      "source": "/api/prompt-runs",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/prompt-runs"
+    },
+    {
+      "source": "/api/v1/prompt-runs",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/prompt-runs"
+    },
+    {
+      "source": "/api/methodology-governance-report",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/methodology-governance-report"
+    },
+    {
+      "source": "/api/v1/methodology-governance-report",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/methodology-governance-report"
+    },
+    {
+      "source": "/api/methodology-registry-version",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/methodology-registry-version"
+    },
+    {
+      "source": "/api/v1/methodology-registry-version",
+      "destination": "https://wlrxvyvowqekaxgabjoe.supabase.co/functions/v1/methodology-registry-version"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "/"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "app.productjarvis.com" }],
+      "destination": "/"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "auth.productjarvis.com" }],
+      "destination": "/"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "admin.productjarvis.com" }],
+      "destination": "/"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "docs.productjarvis.com" }],
+      "destination": "/"
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "blog.productjarvis.com" }],
+      "destination": "/"
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "api.productjarvis.com" }],
+      "destination": "/api-status.json"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "has": [{ "type": "host", "value": "api.productjarvis.com" }],
+      "destination": "/api-status.json"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "productjarvis.com" }],
+      "destination": "https://www.productjarvis.com",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "productjarvis.com" }],
+      "destination": "https://www.productjarvis.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/workspace/settings",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "https://admin.productjarvis.com",
+      "permanent": true
+    },
+    {
+      "source": "/workspace",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "https://app.productjarvis.com",
+      "permanent": true
+    },
+    {
+      "source": "/workspace/:path*",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "https://app.productjarvis.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/auth",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "https://auth.productjarvis.com",
+      "permanent": true
+    },
+    {
+      "source": "/auth/:path*",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "https://auth.productjarvis.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/docs",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "https://docs.productjarvis.com",
+      "permanent": true
+    },
+    {
+      "source": "/docs/:path*",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "https://docs.productjarvis.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/api-docs",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "https://docs.productjarvis.com/api-docs",
+      "permanent": true
+    },
+    {
+      "source": "/api-docs/:path*",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "https://docs.productjarvis.com/api-docs/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/changelog",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "https://docs.productjarvis.com/changelog",
+      "permanent": true
+    },
+    {
+      "source": "/blog",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "https://blog.productjarvis.com",
+      "permanent": true
+    },
+    {
+      "source": "/blog/:path*",
+      "has": [{ "type": "host", "value": "www.productjarvis.com" }],
+      "destination": "https://blog.productjarvis.com/:path*",
+      "permanent": true
+    }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-XSS-Protection", "value": "1; mode=block" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains" }
       ]
     },
     {

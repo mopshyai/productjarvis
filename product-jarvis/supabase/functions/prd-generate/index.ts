@@ -34,7 +34,7 @@ Deno.serve(async (request) => {
     }
 
     // Rate limiting
-    const rateCheck = checkRateLimit(workspaceId, 'prd-generate');
+    const rateCheck = await checkRateLimit(workspaceId, 'prd-generate');
     if (!rateCheck.allowed) {
       return errorWithCors(request, `Rate limit exceeded. Retry in ${Math.ceil(rateCheck.retryAfterMs / 1000)}s`, 429, 'RATE_LIMITED');
     }

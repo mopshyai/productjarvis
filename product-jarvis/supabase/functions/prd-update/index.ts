@@ -3,6 +3,7 @@ import { handleCors, jsonWithCors, errorWithCors } from '../_shared/cors.ts';
 import { getPromptSchema } from '../_shared/prompts/registry.ts';
 import { updatePrdRecord, logAuditEvent } from '../_shared/domainStore.ts';
 import { validateRequiredKeys } from '../_shared/validation/schemaValidator.ts';
+import { checkRateLimit } from '../_shared/rateLimit.ts';
 
 type PrdUpdateInput = {
   workspace_id: string;
@@ -23,6 +24,12 @@ Deno.serve(async (request) => {
     if (!payload.workspace_id || !payload.prd_id) {
       return errorWithCors(request, 'workspace_id and prd_id are required', 400, 'MISSING_PARAMS');
     }
+
+    const rateCheck = await checkRateLimit(payload.workspace_id, 'prd-update');
+    if (!rateCheck.allowed) {
+      return errorWithCors(request, `Rate limit exceeded. Retry in ${Math.ceil(rateCheck.retryAfterMs / 1000)}s`, 429, 'RATE_LIMITED');
+    }
+
     if (!payload.approval_token) {
       return errorWithCors(request, 'approval_token is required', 400, 'APPROVAL_REQUIRED');
     }

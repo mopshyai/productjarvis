@@ -3,6 +3,8 @@
  * Validates all required env vars at startup
  */
 
+import { getApiBaseUrl } from './domainRoutes';
+
 const env = {
   // Supabase (required in production)
   SUPABASE_URL:
@@ -16,8 +18,8 @@ const env = {
     import.meta.env.NEXT_PUBLIC_PRODUCTJARVIS_SUPABASE_ANON_KEY,
 
   // API Gateway
-  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://api.quatarly.cloud',
-  QUATARLY_API_KEY: import.meta.env.VITE_QUATARLY_API_KEY,
+  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || getApiBaseUrl(),
+  AI_GATEWAY_KEY: import.meta.env.VITE_AI_GATEWAY_KEY,
 
   // Observability
   SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN,
@@ -25,8 +27,8 @@ const env = {
   POSTHOG_HOST: import.meta.env.VITE_POSTHOG_HOST || 'https://app.posthog.com',
 
   // Feature flags
-  USE_LIVE_API: import.meta.env.VITE_USE_LIVE_API === 'true',
-  ENABLE_MOCK_AUTH: import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true',
+  USE_LIVE_API: true,
+  ENABLE_MOCK_AUTH: false,
 
   // Build info
   MODE: import.meta.env.MODE,

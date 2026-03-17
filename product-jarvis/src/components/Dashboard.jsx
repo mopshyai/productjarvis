@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Target, Clock, Zap, AlertTriangle, ArrowUpRight, BookOpen, Command, BrainCircuit, CheckCircle2, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import { navigateToSurface, SURFACES } from '../lib/domainRoutes';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -30,16 +31,16 @@ const Dashboard = () => {
   const quotaPct = Math.round((prdUsed / prdLimit) * 100);
 
   const healthScore = Math.round((digest?.confidence || 0.4) * 100);
-  const scoreColor = healthScore >= 70 ? 'var(--success)' : healthScore >= 40 ? 'var(--warning)' : '#f87171';
+  const scoreColor = healthScore >= 70 ? 'var(--color-success)' : healthScore >= 40 ? 'var(--color-warning)' : 'var(--color-danger)';
 
   const firstName = session?.user?.name?.split(' ')[0] || 'there';
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
   const quickActions = [
-    { label: 'Generate PRD', icon: BookOpen, path: '/workspace/prds', color: 'var(--accent-primary)' },
-    { label: 'Run Command', icon: Command, path: '/workspace/command', color: '#8b5cf6' },
-    { label: 'Search Decisions', icon: BrainCircuit, path: '/workspace/decisions', color: '#06b6d4' },
-    { label: 'Daily Digest', icon: Clock, path: '/workspace/digest', color: 'var(--warning)' },
+    { label: 'Generate PRD', icon: BookOpen, path: '/prds', color: 'var(--color-accent)' },
+    { label: 'Run Command', icon: Command, path: '/command', color: '#8b5cf6' },
+    { label: 'Search Decisions', icon: BrainCircuit, path: '/decisions', color: '#06b6d4' },
+    { label: 'Daily Digest', icon: Clock, path: '/digest', color: 'var(--color-warning)' },
   ];
 
   const risks = digest?.risks || [];
@@ -49,12 +50,12 @@ const Dashboard = () => {
   const signals = session?.product_context?.user_signals || [];
 
   return (
-    <div className="dashboard-container page-content animate-fade-in">
+    <div className="dashboard dashboard-container page-content animate-fade-in">
       {/* Greeting */}
-      <div className="dashboard-greeting">
-        <div>
+      <div className="dashboard-header">
+        <div className="dashboard-greeting">
           <h1>Good morning, {firstName}</h1>
-          <p>{today}</p>
+          <p className="dashboard-date">{today}</p>
         </div>
         <div className="health-score glass-panel" style={{ borderColor: `${scoreColor}33` }}>
           <div className="score-value" style={{ color: scoreColor }}>{loading ? '—' : healthScore}</div>
@@ -68,7 +69,7 @@ const Dashboard = () => {
           <button
             key={qa.path}
             className="quick-action-card glass-panel"
-            onClick={() => navigate(qa.path)}
+            onClick={() => navigateToSurface(navigate, SURFACES.APP, qa.path)}
             style={{ '--qa-color': qa.color }}
           >
             <qa.icon size={20} style={{ color: qa.color }} />
@@ -104,7 +105,7 @@ const Dashboard = () => {
             <span className="trend neutral">of {prdLimit} remaining</span>
           </div>
           <div className="quota-bar">
-            <div className="quota-fill" style={{ width: `${quotaPct}%`, background: quotaPct > 80 ? 'var(--warning)' : 'var(--accent-primary)' }} />
+            <div className="quota-fill" style={{ width: `${quotaPct}%`, background: quotaPct > 80 ? 'var(--color-warning)' : 'var(--color-accent)' }} />
           </div>
           {quotaPct >= 67 && (
             <div className={`quota-cta ${remaining === 0 ? 'quota-cta-urgent' : ''}`}>
@@ -138,7 +139,7 @@ const Dashboard = () => {
             <h3 className="flex items-center gap-2 text-warning">
               <AlertTriangle size={18} /> Daily Risks
             </h3>
-            <button className="view-all" onClick={() => navigate('/workspace/digest')}>View digest</button>
+            <button className="view-all" onClick={() => navigateToSurface(navigate, SURFACES.APP, '/digest')}>View digest</button>
           </div>
           <div className="risk-content">
             {loading ? (
@@ -174,7 +175,7 @@ const Dashboard = () => {
               ) : (
                 actions.map((action, i) => (
                   <div key={i} className="action-row">
-                    <AlertTriangle size={13} style={{ color: 'var(--warning)', flexShrink: 0 }} />
+                    <AlertTriangle size={13} style={{ color: 'var(--color-warning)', flexShrink: 0 }} />
                     <span>{action}</span>
                   </div>
                 ))
@@ -195,7 +196,7 @@ const Dashboard = () => {
               ) : (
                 completions.map((item, i) => (
                   <div key={i} className="action-row">
-                    <CheckCircle2 size={13} style={{ color: 'var(--success)', flexShrink: 0 }} />
+                    <CheckCircle2 size={13} style={{ color: 'var(--color-success)', flexShrink: 0 }} />
                     <span>{item}</span>
                   </div>
                 ))
@@ -215,7 +216,7 @@ const Dashboard = () => {
             <div className="side-panel-body">
               {okrs.map((okr, i) => (
                 <div key={i} className="okr-row">
-                  <Target size={13} style={{ color: 'var(--accent-primary)', flexShrink: 0 }} />
+                  <Target size={13} style={{ color: 'var(--color-accent)', flexShrink: 0 }} />
                   <span>{okr}</span>
                 </div>
               ))}

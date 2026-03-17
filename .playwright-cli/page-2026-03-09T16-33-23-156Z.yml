@@ -1,0 +1,22 @@
+- generic [ref=e5]:
+  - generic [ref=e6]:
+    - generic [ref=e7]: J
+    - generic [ref=e8]: ProductJarvis
+  - generic [ref=e9]:
+    - heading "Sign in to ProductJarvis" [level=1] [ref=e10]
+    - paragraph [ref=e11]: Continue with Google first. If your workspace is not enabled yet, we'll ask for an invite code or let you join the waitlist after sign-in.
+    - button "Continue with Google" [ref=e12] [cursor=pointer]:
+      - img [ref=e13]
+      - text: Continue with Google
+    - generic [ref=e19]: What happens next
+    - list [ref=e20]:
+      - listitem [ref=e21]: Sign in with your Google account on the auth host.
+      - listitem [ref=e22]: If your email already has access, you go straight into the app.
+      - listitem [ref=e23]: If not, you can redeem an invite code or join the waitlist after sign-in.
+    - paragraph [ref=e24]: Already invited? Use the same Google account from your ProductJarvis invitation.
+  - generic [ref=e25]:
+    - link "Privacy" [ref=e26] [cursor=pointer]:
+      - /url: https://www.productjarvis.com/privacy
+    - generic [ref=e27]: ·
+    - link "Terms" [ref=e28] [cursor=pointer]:
+      - /url: https://www.productjarvis.com/terms
